@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="FC Mobile FSM — herramienta para jugadores de FC Mobile">
+<title>FC Mobile FSM</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="logo"><span>⚽</span><b>FSM</b></div>
+  <div class="brand">FC MOBILE <em>FSM</em><small class="tag">TU CENTRO PARA JUGAR MEJOR</small></div>
+  <div class="top-actions"><span id="usage" class="badge">🎟️ 2/2</span><button id="accountBtn" class="btn">👤 Cuenta</button><button id="proBtn" class="btn primary">⭐ FSM PRO</button></div>
+</header>
+<div class="app">
+<aside class="sidebar">
+  <button class="nav active" data-page="home">🏠 Inicio</button><button class="nav" data-page="players">👤 Jugadores</button><button class="nav" data-page="ai">🤖 FSM IA</button><button class="nav" data-page="compare">⚖️ Comparar</button><button class="nav" data-page="squad">👥 Plantilla</button><button class="nav" data-page="market">📈 Mercado</button><button class="nav" data-page="account">👤 Mi cuenta</button>
+</aside>
+<main>
+<section id="home" class="page active">
+  <div class="hero"><div class="eyebrow">FC MOBILE · FSM</div><h1>Tu equipo.<br><span>Tu estrategia.</span></h1><p>Una herramienta sencilla para descubrir jugadores, comparar opciones y construir mejores plantillas.</p><button class="btn primary" data-go="ai">🤖 Probar FSM IA</button></div>
+  <div class="grid4" style="margin:22px 0"><div class="quick" data-go="ai">🤖<strong>FSM IA</strong><small>5 análisis gratis</small></div><div class="quick" data-go="compare">⚖️<strong>Comparador</strong><small>Compara estadísticas</small></div><div class="quick" data-go="squad">👥<strong>Plantilla</strong><small>Construye tu 4-3-3</small></div><div class="quick" data-go="market">📈<strong>Mercado</strong><small>Analiza precios demo</small></div></div>
+  <div class="section-title"><h2>⭐ Jugadores destacados</h2><span class="muted">Demo</span></div><div id="featured" class="cards"></div>
+  <div class="panel pro" style="margin-top:25px"><div class="eyebrow">FSM PRO</div><h2>Más análisis. Más herramientas.</h2><p class="muted">Empieza gratis y, cuando el proyecto esté online, podrás desbloquear las funciones premium.</p><div class="pricebig">2,99 € <small>/mes</small></div><ul><li>♾️ Análisis ilimitados</li><li>🧠 Recomendaciones avanzadas</li><li>📊 Análisis completo de plantilla</li><li>📈 Futuras herramientas de mercado</li></ul><button class="btn primary" id="homePro">Ver FSM PRO</button></div>
+</section>
+
+<section id="players" class="page"><div class="panel"><h2>👤 Jugadores</h2><p class="muted">Busca por nombre, club o posición.</p><input id="playerSearch" class="input" placeholder="🔎 Buscar jugador..."><br><br><div id="allPlayers" class="cards"></div></div></section>
+
+<section id="ai" class="page">
+<div class="panel">
+ <div class="usage"><b>🎟️ Análisis disponibles</b> · <span id="remaining">2 análisis restantes</span><div class="bar"><i id="bar"></i></div></div>
+ <h2>🤖 FSM IA</h2><p class="muted">Encuentra la mejor opción según presupuesto, posición y prioridad.</p>
+ <div class="form2"><div class="field"><label>Presupuesto</label><input id="budget" type="number" placeholder="300000000"></div><div class="field"><label>Posición</label><select id="recPos"><option>ST</option><option>LW</option><option>RW</option><option>CAM</option><option>CM</option><option>CDM</option><option>CB</option><option>LB</option><option>RB</option><option>GK</option></select></div><div class="field"><label>Prioridad</label><select id="priority"><option value="value">Calidad / precio</option><option value="ovr">GRL</option><option value="pace">Velocidad</option><option value="shoot">Tiro</option><option value="dribble">Regate</option><option value="def">Defensa</option></select></div></div>
+ <button id="recommend" class="btn primary fullbtn">🔎 USAR 1 ANÁLISIS</button>
+</div>
+<div class="panel"><div class="section-title"><h2 id="resultTitle">Resultado FSM</h2><span class="muted">V3 final demo</span></div><div id="results" class="muted">Introduce tus datos para comenzar.</div></div>
+</section>
+
+<section id="compare" class="page"><div class="panel"><h2>⚖️ Comparador</h2><div class="form2"><div class="field"><label>Jugador A</label><select id="playerA"></select></div><div class="field"><label>Jugador B</label><select id="playerB"></select></div></div><button id="compareBtn" class="btn primary fullbtn">COMPARAR</button></div><div id="compareOut" class="panel"><div class="notice">Selecciona dos jugadores.</div></div></section>
+
+<section id="squad" class="page"><div class="panel"><h2>👥 Mi plantilla · 4-3-3</h2><p class="muted">Selecciona jugadores y guarda tu plantilla en este dispositivo.</p><div id="formation" class="formation"></div><button id="saveSquad" class="btn primary fullbtn">💾 GUARDAR Y ANALIZAR</button><div id="squadSummary" style="margin-top:13px"></div></div></section>
+
+<section id="market" class="page"><div class="panel"><h2>📈 Mercado FSM</h2><p class="muted">Herramienta de referencia para preparar el futuro sistema de mercado.</p><div class="form2"><div class="field"><label>Jugador</label><select id="marketPlayer"></select></div><div class="field"><label>Precio encontrado</label><input id="marketPrice" type="number" placeholder="300000000"></div></div><button id="marketBtn" class="btn primary fullbtn">ANALIZAR PRECIO</button></div><div id="marketOut" class="panel"><div class="notice">Los precios actuales son de demostración.</div></div></section>
+
+<section id="account" class="page">
+<div class="panel">
+ <h2>👤 Mi cuenta</h2><p class="muted">Tu perfil y estado de FSM.</p>
+ <div id="authBox"><div class="form2"><div class="field"><label>Email</label><input id="email" type="email" placeholder="tu@email.com"></div><div class="field"><label>Contraseña</label><input id="password" type="password" placeholder="Mínimo 6 caracteres"></div></div><button id="authSubmit" class="btn primary fullbtn">CREAR / ENTRAR</button><div class="notice" style="margin-top:12px">Prototipo local: no uses una contraseña real. Antes de publicar conectaremos autenticación segura.</div></div>
+ <div id="loggedBox" style="display:none"><p>Email: <b id="userEmail"></b></p><p>Plan: <b id="planText">FREE</b></p><p>Uso: <b id="remaining"></b></p><button id="logout" class="btn">Cerrar sesión</button></div>
+</div>
+<div class="panel pro"><h2>⭐ FSM PRO</h2><div class="pricebig">2,99 € <small>/mes</small></div><ul><li>♾️ Análisis ilimitados</li><li>🧠 IA avanzada</li><li>📊 Herramientas de plantilla</li><li>📈 Funciones de mercado futuras</li></ul><button id="accountPro" class="btn primary">VER PRO</button><div class="notice" style="margin-top:12px">El pago real se conectará en la fase online. Esta versión no cobra dinero.</div></div>
+</section>
+</main></div>
+
+<nav class="mobile-nav"><button class="nav active" data-page="home">🏠<br>Inicio</button><button class="nav" data-page="players">👤<br>Jugadores</button><button class="nav" data-page="ai">🤖<br>IA</button><button class="nav" data-page="squad">👥<br>Equipo</button><button class="nav" data-page="account">👤<br>Cuenta</button></nav>
+
+<div id="modal" class="modal"><div class="panel modalbox pro"><button id="modalClose" class="close">×</button><div class="eyebrow">FSM PRO</div><h2>Desbloquea todo FSM</h2><p class="muted">2,99 € / mes</p><ul><li>♾️ Análisis ilimitados</li><li>🧠 Recomendaciones avanzadas</li><li>📊 Herramientas premium</li></ul><button id="activate" class="btn primary fullbtn">ACTIVAR PRO · DEMO</button><div class="notice" style="margin-top:12px">No se realiza ningún cobro en esta versión.</div></div></div>
+<div id="toast" class="toast"></div>
+<script src="players.js"></script><script src="app.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded",()=>{
+ const homePro=document.getElementById("homePro"),accountPro=document.getElementById("accountPro");
+ homePro.onclick=()=>document.getElementById("modal").classList.add("show");
+ accountPro.onclick=()=>document.getElementById("modal").classList.add("show");
+});
+</script>
+</body></html>
