@@ -5,204 +5,230 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="FC Mobile FSM — herramienta para jugadores de FC Mobile">
 <title>FC Mobile FSM</title>
-<header class="topbar">
-  <div class="logo"><span>⚽</span><b>FSM</b></div>
-  <div class="brand">FC MOBILE <em>FSM</em><small class="tag">TU CENTRO PARA JUGAR MEJOR</small></div>
-  <div class="top-actions"><span id="usage" class="badge">🎟️ 2/2</span><button id="accountBtn" class="btn">👤 Cuenta</button><button id="proBtn" class="btn primary">⭐ FSM PRO</button></div>
-</header> 
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<header class="topbar">
+  <div class="logo"><span>⚽</span><b>FSM</b></div>
+  <div class="brand">FC MOBILE <em>FSM</em><small class="tag">TU CENTRO PARA JUGAR MEJOR</small></div>
+  <div class="top-actions">
+    <span id="usage" class="badge">🎟️ 2/2</span>
+    <button id="accountBtn" class="btn" type="button">👤 Cuenta</button>
+    <button id="proBtn" class="btn primary" type="button">⭐ FSM PRO</button>
+  </div>
+</header>
+
 <div class="app">
 <aside class="sidebar">
-  <button class="nav active" data-page="home">🏠 Inicio</button><button class="nav" data-page="players">👤 Jugadores</button><button class="nav" data-page="ai">🤖 FSM IA</button><button class="nav" data-page="compare">⚖️ Comparar</button><button class="nav" data-page="squad">👥 Plantilla</button><button class="nav" data-page="market">📈 Mercado</button><button class="nav" data-page="account">👤 Mi cuenta</button>
+  <button class="nav active" data-page="home" type="button">🏠 Inicio</button>
+  <button class="nav" data-page="players" type="button">👤 Jugadores</button>
+  <button class="nav" data-page="ai" type="button">🤖 FSM IA</button>
+  <button class="nav" data-page="compare" type="button">⚖️ Comparar</button>
+  <button class="nav" data-page="squad" type="button">👥 Plantilla</button>
+  <button class="nav" data-page="market" type="button">📈 Mercado</button>
+  <button class="nav" data-page="account" type="button">👤 Mi cuenta</button>
 </aside>
+
 <main>
 <section id="home" class="page active">
-  <div class="hero"><div class="eyebrow">FC MOBILE · FSM</div><h1>Tu equipo.<br><span>Tu estrategia.</span></h1><p>Una herramienta sencilla para descubrir jugadores, comparar opciones y construir mejores plantillas.</p><button class="btn primary" data-go="ai">🤖 Probar FSM IA</button></div>
-  <div class="grid4" style="margin:22px 0"><div class="quick" data-go="ai">🤖<strong>FSM IA</strong><small>5 análisis gratis</small></div><div class="quick" data-go="compare">⚖️<strong>Comparador</strong><small>Compara estadísticas</small></div><div class="quick" data-go="squad">👥<strong>Plantilla</strong><small>Construye tu 4-3-3</small></div><div class="quick" data-go="market">📈<strong>Mercado</strong><small>Analiza precios demo</small></div></div>
-  <div class="section-title"><h2>⭐ Jugadores destacados</h2><span class="muted">Demo</span></div><div id="featured" class="cards"></div>
-  <div class="panel pro" style="margin-top:25px"><div class="eyebrow">FSM PRO</div><h2>Más análisis. Más herramientas.</h2><p class="muted">Empieza gratis y, cuando el proyecto esté online, podrás desbloquear las funciones premium.</p><div class="pricebig">2,99 € <small>/mes</small></div><ul><li>♾️ Análisis ilimitados</li><li>🧠 Recomendaciones avanzadas</li><li>📊 Análisis completo de plantilla</li><li>📈 Futuras herramientas de mercado</li></ul><button class="btn primary" id="homePro">Ver FSM PRO</button></div>
+  <div class="hero">
+    <div class="eyebrow">FC MOBILE · FSM</div>
+    <h1>Tu equipo.<br><span>Tu estrategia.</span></h1>
+    <p>Una herramienta para descubrir jugadores, comparar opciones, analizar plantillas y tomar mejores decisiones.</p>
+    <button class="btn primary" data-go="ai" type="button">🤖 Probar FSM IA</button>
+  </div>
+
+  <div class="grid4" style="margin:22px 0">
+    <div class="quick" data-go="ai">🤖<strong>FSM IA</strong><small>2 análisis gratis</small></div>
+    <div class="quick" data-go="compare">⚖️<strong>Comparador</strong><small>Compara estadísticas</small></div>
+    <div class="quick" data-go="squad">👥<strong>Plantilla</strong><small>Construye tu 4-3-3</small></div>
+    <div class="quick" data-go="market">📈<strong>Mercado</strong><small>Analiza precios demo</small></div>
+  </div>
+
+  <div class="section-title"><h2>⭐ Jugadores destacados</h2><span class="muted">Datos demo</span></div>
+  <div id="featured" class="cards"></div>
+
+  <div class="panel pro" style="margin-top:25px">
+    <div class="eyebrow">FSM PRO</div>
+    <h2>Más análisis. Más herramientas.</h2>
+    <p class="muted">La fase de pagos se conecta después de dejar estable la autenticación y la IA.</p>
+    <div class="pricebig">2,99 € <small>/mes</small></div>
+    <ul>
+      <li>♾️ Análisis ilimitados</li>
+      <li>🧠 Recomendaciones avanzadas</li>
+      <li>📊 Análisis completo de plantilla</li>
+      <li>📈 Futuras herramientas de mercado</li>
+    </ul>
+    <button class="btn primary" id="homePro" type="button">Ver FSM PRO</button>
+  </div>
 </section>
 
-<section id="players" class="page"><div class="panel"><h2>👤 Jugadores</h2><p class="muted">Busca por nombre, club o posición.</p><input id="playerSearch" class="input" placeholder="🔎 Buscar jugador..."><br><br><div id="allPlayers" class="cards"></div></div></section>
+<section id="players" class="page">
+  <div class="panel">
+    <h2>👤 Jugadores</h2>
+    <p class="muted">Busca por nombre, club o posición.</p>
+    <input id="playerSearch" class="input" type="text" placeholder="🔎 Buscar jugador..." autocomplete="off">
+    <br><br>
+    <div id="allPlayers" class="cards"></div>
+  </div>
+</section>
 
 <section id="ai" class="page">
-<div class="panel">
- <div class="usage"><b>🎟️ Análisis disponibles</b> · <span id="remaining">2 análisis restantes</span><div class="bar"><i id="bar"></i></div></div>
- <h2>🤖 FSM IA</h2><p class="muted">Encuentra la mejor opción según presupuesto, posición y prioridad.</p>
- <div class="form2"><div class="field"><label>Presupuesto</label><input id="budget" type="number" placeholder="300000000"></div><div class="field"><label>Posición</label><select id="recPos"><option>ST</option><option>LW</option><option>RW</option><option>CAM</option><option>CM</option><option>CDM</option><option>CB</option><option>LB</option><option>RB</option><option>GK</option></select></div><div class="field"><label>Prioridad</label><select id="priority"><option value="value">Calidad / precio</option><option value="ovr">GRL</option><option value="pace">Velocidad</option><option value="shoot">Tiro</option><option value="dribble">Regate</option><option value="def">Defensa</option></select></div></div>
- <button id="recommend" class="btn primary fullbtn">🔎 USAR 1 ANÁLISIS</button>
-</div>
-<div class="panel"><div class="section-title"><h2 id="resultTitle">Resultado FSM</h2><span class="muted">V3 final demo</span></div><div id="results" class="muted">Introduce tus datos para comenzar.</div></div>
+  <div class="panel">
+    <div class="usage">
+      <b>🎟️ Análisis disponibles</b> · <span id="remaining">2 análisis restantes</span>
+      <div class="bar"><i id="bar"></i></div>
+    </div>
+    <h2>🤖 FSM IA</h2>
+    <p class="muted">Encuentra la mejor opción según presupuesto, posición y prioridad.</p>
+
+    <div class="form2">
+      <div class="field">
+        <label>Presupuesto</label>
+        <input id="budget" type="number" min="0" inputmode="numeric" placeholder="300000000">
+      </div>
+      <div class="field">
+        <label>Posición</label>
+        <select id="recPos">
+          <option value="ST">ST</option><option value="LW">LW</option><option value="RW">RW</option>
+          <option value="CAM">CAM</option><option value="CM">CM</option><option value="CDM">CDM</option>
+          <option value="CB">CB</option><option value="LB">LB</option><option value="RB">RB</option><option value="GK">GK</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Prioridad</label>
+        <select id="priority">
+          <option value="value">Calidad / precio</option>
+          <option value="ovr">GRL</option>
+          <option value="pace">Velocidad</option>
+          <option value="shoot">Tiro</option>
+          <option value="dribble">Regate</option>
+          <option value="def">Defensa</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="recommend" class="btn primary fullbtn" type="button">🔎 USAR 1 ANÁLISIS</button>
+  </div>
+
+  <div class="panel">
+    <div class="section-title"><h2 id="resultTitle">Resultado FSM</h2><span class="muted">FSM-AI seguro</span></div>
+    <div id="results" class="muted">Inicia sesión e introduce los datos para comenzar.</div>
+  </div>
 </section>
 
-<section id="compare" class="page"><div class="panel"><h2>⚖️ Comparador</h2><div class="form2"><div class="field"><label>Jugador A</label><select id="playerA"></select></div><div class="field"><label>Jugador B</label><select id="playerB"></select></div></div><button id="compareBtn" class="btn primary fullbtn">COMPARAR</button></div><div id="compareOut" class="panel"><div class="notice">Selecciona dos jugadores.</div></div></section>
+<section id="compare" class="page">
+  <div class="panel">
+    <h2>⚖️ Comparador</h2>
+    <div class="form2">
+      <div class="field"><label>Jugador A</label><select id="playerA"></select></div>
+      <div class="field"><label>Jugador B</label><select id="playerB"></select></div>
+    </div>
+    <button id="compareBtn" class="btn primary fullbtn" type="button">COMPARAR</button>
+  </div>
+  <div id="compareOut" class="panel"><div class="notice">Selecciona dos jugadores.</div></div>
+</section>
 
-<section id="squad" class="page"><div class="panel"><h2>👥 Mi plantilla · 4-3-3</h2><p class="muted">Selecciona jugadores y guarda tu plantilla en este dispositivo.</p><div id="formation" class="formation"></div><button id="saveSquad" class="btn primary fullbtn">💾 GUARDAR Y ANALIZAR</button><div id="squadSummary" style="margin-top:13px"></div></div></section>
+<section id="squad" class="page">
+  <div class="panel">
+    <h2>👥 Mi plantilla · 4-3-3</h2>
+    <p class="muted">Selecciona jugadores y analiza tu plantilla.</p>
+    <div id="formation" class="formation"></div>
+    <button id="saveSquad" class="btn primary fullbtn" type="button">💾 GUARDAR Y ANALIZAR</button>
+    <div id="squadSummary" style="margin-top:13px"></div>
+  </div>
+</section>
 
-<section id="market" class="page"><div class="panel"><h2>📈 Mercado FSM</h2><p class="muted">Herramienta de referencia para preparar el futuro sistema de mercado.</p><div class="form2"><div class="field"><label>Jugador</label><select id="marketPlayer"></select></div><div class="field"><label>Precio encontrado</label><input id="marketPrice" type="number" placeholder="300000000"></div></div><button id="marketBtn" class="btn primary fullbtn">ANALIZAR PRECIO</button></div><div id="marketOut" class="panel"><div class="notice">Los precios actuales son de demostración.</div></div></section>
+<section id="market" class="page">
+  <div class="panel">
+    <h2>📈 Mercado FSM</h2>
+    <p class="muted">Referencia de mercado. Los precios son de demostración en esta fase.</p>
+    <div class="form2">
+      <div class="field"><label>Jugador</label><select id="marketPlayer"></select></div>
+      <div class="field"><label>Precio encontrado</label><input id="marketPrice" type="number" min="0" inputmode="numeric" placeholder="300000000"></div>
+    </div>
+    <button id="marketBtn" class="btn primary fullbtn" type="button">ANALIZAR PRECIO</button>
+  </div>
+  <div id="marketOut" class="panel"><div class="notice">Los precios actuales son de demostración.</div></div>
+</section>
 
 <section id="account" class="page">
-<div class="panel">
- <h2>👤 Mi cuenta</h2><p class="muted">Tu perfil y estado de FSM.</p>
- <div id="authBox"><div class="form2"><div class="field"><label>Email</label><input id="email" type="email" placeholder="tu@email.com"></div><div class="field"><label>Contraseña</label><input id="password" type="password" placeholder="Mínimo 6 caracteres"></div></div><button id="authSubmit" class="btn primary fullbtn">CREAR / ENTRAR</button><div class="notice" style="margin-top:12px">Cuenta protegida con Supabase. Puedes registrarte o iniciar sesión.</div></div>
- <div id="loggedBox" style="display:none"><p>Email: <b id="userEmail"></b></p><p>Plan: <b id="planText">FREE</b></p><p>Uso: <b id="remaining"></b></p><button id="logout" class="btn">Cerrar sesión</button></div>
-</div>
-<div class="panel pro"><h2>⭐ FSM PRO</h2><div class="pricebig">2,99 € <small>/mes</small></div><ul><li>♾️ Análisis ilimitados</li><li>🧠 IA avanzada</li><li>📊 Herramientas de plantilla</li><li>📈 Funciones de mercado futuras</li></ul><button id="accountPro" class="btn primary">VER PRO</button><div class="notice" style="margin-top:12px">El pago real se conectará en la fase online. Esta versión no cobra dinero.</div></div>
+  <div class="panel">
+    <h2>👤 Mi cuenta</h2>
+    <p class="muted">Tu perfil y estado de FSM.</p>
+
+    <div id="authBox">
+      <div class="form2">
+        <div class="field">
+          <label>Email</label>
+          <input id="email" type="email" autocomplete="email" placeholder="tu@email.com">
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input id="password" type="password" autocomplete="current-password" minlength="6" placeholder="Mínimo 6 caracteres">
+        </div>
+      </div>
+
+      <button id="authSubmit" class="btn primary fullbtn" type="button">CREAR / ENTRAR</button>
+
+      <div class="notice" style="margin-top:12px">
+        Regístrate o inicia sesión. La autenticación está gestionada por Supabase.
+      </div>
+    </div>
+
+    <div id="loggedBox" style="display:none">
+      <p>Email: <b id="userEmail"></b></p>
+      <p>Plan: <b id="planText">FREE</b></p>
+      <p>Uso: <b id="remainingAccount"></b></p>
+      <button id="logout" class="btn" type="button">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="panel pro">
+    <h2>⭐ FSM PRO</h2>
+    <div class="pricebig">2,99 € <small>/mes</small></div>
+    <ul>
+      <li>♾️ Análisis ilimitados</li>
+      <li>🧠 IA avanzada</li>
+      <li>📊 Herramientas de plantilla</li>
+      <li>📈 Funciones de mercado futuras</li>
+    </ul>
+    <button id="accountPro" class="btn primary" type="button">VER PRO</button>
+    <div class="notice" style="margin-top:12px">No hay cobro real todavía; esa será la Fase 6.</div>
+  </div>
 </section>
-</main></div>
+</main>
+</div>
 
-<nav class="mobile-nav"><button class="nav active" data-page="home">🏠<br>Inicio</button><button class="nav" data-page="players">👤<br>Jugadores</button><button class="nav" data-page="ai">🤖<br>IA</button><button class="nav" data-page="squad">👥<br>Equipo</button><button class="nav" data-page="account">👤<br>Cuenta</button></nav>
+<nav class="mobile-nav">
+  <button class="nav active" data-page="home" type="button">🏠<br>Inicio</button>
+  <button class="nav" data-page="players" type="button">👤<br>Jugadores</button>
+  <button class="nav" data-page="ai" type="button">🤖<br>IA</button>
+  <button class="nav" data-page="squad" type="button">👥<br>Equipo</button>
+  <button class="nav" data-page="account" type="button">👤<br>Cuenta</button>
+</nav>
 
-<div id="modal" class="modal"><div class="panel modalbox pro"><button id="modalClose" class="close">×</button><div class="eyebrow">FSM PRO</div><h2>Desbloquea todo FSM</h2><p class="muted">2,99 € / mes</p><ul><li>♾️ Análisis ilimitados</li><li>🧠 Recomendaciones avanzadas</li><li>📊 Herramientas premium</li></ul><button id="activate" class="btn primary fullbtn">ACTIVAR PRO · DEMO</button><div class="notice" style="margin-top:12px">No se realiza ningún cobro en esta versión.</div></div></div>
+<div id="modal" class="modal">
+  <div class="panel modalbox pro">
+    <button id="modalClose" class="close" type="button">×</button>
+    <div class="eyebrow">FSM PRO</div>
+    <h2>Desbloquea todo FSM</h2>
+    <p class="muted">2,99 € / mes</p>
+    <ul>
+      <li>♾️ Análisis ilimitados</li>
+      <li>🧠 Recomendaciones avanzadas</li>
+      <li>📊 Herramientas premium</li>
+    </ul>
+    <button id="activate" class="btn primary fullbtn" type="button">ACTIVAR PRO · DEMO</button>
+    <div class="notice" style="margin-top:12px">No se realiza ningún cobro en esta versión.</div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="players.js"></script><script src="app.js"></script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const homePro = document.getElementById("homePro");
-  const accountPro = document.getElementById("accountPro");
-  if (homePro) homePro.onclick = () => document.getElementById("modal").classList.add("show");
-  if (accountPro) accountPro.onclick = () => document.getElementById("modal").classList.add("show");
-
-  // ===== FSM + SUPABASE AUTH =====
-  const SUPABASE_URL = "https://jshevgjyweoianpbbjdl.supabase.co";
-  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6UTaFORK";
-
-  if (SUPABASE_URL.includes("PEGA_AQUI") || SUPABASE_PUBLISHABLE_KEY.includes("PEGA_AQUI")) {
-    console.warn("FSM: faltan las credenciales de Supabase.");
-    return;
-  }
-
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-
-  const authBox = document.getElementById("authBox");
-  const loggedBox = document.getElementById("loggedBox");
-  const authSubmit = document.getElementById("authSubmit");
-  const logout = document.getElementById("logout");
-  const emailInput = document.getElementById("email");
-  const passwordInput = document.getElementById("password");
-  const userEmail = document.getElementById("userEmail");
-  const planText = document.getElementById("planText");
-  const accountRemaining = document.querySelector("#loggedBox #remaining");
-  const usage = document.getElementById("usage");
-  const aiRemaining = document.querySelector("#ai #remaining");
-  const aiBar = document.getElementById("bar");
-
-  async function loadProfile(user) {
-    if (!user) {
-      authBox.style.display = "";
-      loggedBox.style.display = "none";
-      if (usage) usage.textContent = "🎟️ 2/2";
-      if (aiRemaining) aiRemaining.textContent = "2 análisis restantes";
-      if (aiBar) aiBar.style.width = "100%";
-      return;
-    }
-
-    authBox.style.display = "none";
-    loggedBox.style.display = "block";
-    userEmail.textContent = user.email || "";
-
-    const { data: profile, error } = await supabaseClient
-      .from("profiles")
-      .select("free_uses, is_pro")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error("FSM - Error cargando perfil:", error);
-      planText.textContent = "FREE";
-      if (accountRemaining) accountRemaining.textContent = "Error";
-      return;
-    }
-
-    if (!profile) {
-      planText.textContent = "FREE";
-      if (accountRemaining) accountRemaining.textContent = "Perfil pendiente";
-      return;
-    }
-
-    const freeUses = Number(profile.free_uses ?? 0);
-    const isPro = Boolean(profile.is_pro);
-
-    planText.textContent = isPro ? "FSM PRO" : "FREE";
-    if (accountRemaining) accountRemaining.textContent = isPro ? "Ilimitado" : String(freeUses);
-    if (usage) usage.textContent = isPro ? "⭐ PRO · ilimitado" : `🎟️ ${freeUses}/2`;
-    if (aiRemaining) aiRemaining.textContent = isPro ? "Análisis ilimitados" : `${freeUses} análisis restantes`;
-    if (aiBar) aiBar.style.width = isPro ? "100%" : `${Math.max(0, Math.min(100, freeUses * 50))}%`;
-  }
-
-  async function registerOrLogin() {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!email || !password) {
-      alert("Introduce tu email y contraseña.");
-      return;
-    }
-    if (password.length < 6) {
-      alert("La contraseña debe tener al menos 6 caracteres.");
-      return;
-    }
-
-    authSubmit.disabled = true;
-    authSubmit.textContent = "CONECTANDO...";
-
-    try {
-      const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({ email, password });
-
-      if (!signUpError) {
-        if (signUpData.session && signUpData.user) {
-          await loadProfile(signUpData.user);
-          alert("Cuenta creada correctamente.");
-        } else {
-          alert("Cuenta creada. Revisa tu correo para confirmar la cuenta y después inicia sesión.");
-        }
-        return;
-      }
-
-      const { data: loginData, error: loginError } =
-        await supabaseClient.auth.signInWithPassword({ email, password });
-
-      if (loginError) {
-        alert("No se pudo iniciar sesión: " + loginError.message);
-        return;
-      }
-
-      await loadProfile(loginData.user);
-    } catch (err) {
-      console.error("FSM - Error de autenticación:", err);
-      alert("Ha ocurrido un error al conectar con Supabase.");
-    } finally {
-      authSubmit.disabled = false;
-      authSubmit.textContent = "CREAR / ENTRAR";
-    }
-  }
-
-  authSubmit.addEventListener("click", registerOrLogin);
-
-  logout.addEventListener("click", async () => {
-    const { error } = await supabaseClient.auth.signOut();
-    if (error) {
-      alert("No se pudo cerrar la sesión.");
-      return;
-    }
-    await loadProfile(null);
-  });
-
-  supabaseClient.auth.onAuthStateChange((_event, session) => {
-    setTimeout(() => loadProfile(session?.user || null), 0);
-  });
-
-  (async () => {
-    const { data, error } = await supabaseClient.auth.getSession();
-    if (error) {
-      console.error("FSM - Error recuperando sesión:", error);
-      return;
-    }
-    await loadProfile(data.session?.user || null);
-  })();
-});
-</script>
-</body></html>
+<script src="players.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
