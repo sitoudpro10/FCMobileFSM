@@ -259,22 +259,27 @@ async function loadProfile(user) {
 }
 
 async function auth() {
-  const email = $("email")?.value.trim();
-  const pass = $("password")?.value;
+  const emailInput = $("email");
+  const passwordInput = $("password");
+  const btn = $("authSubmit");
+
+  const email = emailInput?.value.trim().toLowerCase();
+  const pass = passwordInput?.value || "";
 
   if (!email || !pass) {
-    toast("Completa email y contraseña.");
+    toast("Completa el email y la contraseña.");
     return;
   }
 
   if (pass.length < 6) {
-    toast(
-      "La contraseña debe tener 6 caracteres o más."
-    );
+    toast("La contraseña debe tener al menos 6 caracteres.");
     return;
   }
 
-  const btn = $("authSubmit");
+  if (!supabaseClient) {
+    toast("Error: Supabase no está conectado.");
+    return;
+  }
 
   if (btn) {
     btn.disabled = true;
@@ -282,6 +287,7 @@ async function auth() {
   }
 
   try {
+    // 1. Intentamos CREAR la cuenta
     const {
       data: signUpData,
       error: signUpError
@@ -290,61 +296,112 @@ async function auth() {
       password: pass
     });
 
+    // 2. Cuenta creada correctamente
     if (!signUpError) {
-      if (signUpData.user) {
+      if (signUpData?.user) {
+        // Si Supabase devuelve sesión, podemos entrar directamente
         if (signUpData.session) {
           await loadProfile(signUpData.user);
 
-          toast(
-            "Cuenta creada correctamente."
-          );
+          toast("Cuenta creada correctamente.");
 
           go("account");
         } else {
+          // Confirmación de email activada
           toast(
             "Cuenta creada. Revisa tu correo para confirmar la cuenta."
           );
         }
+      } else {
+        toast(
+          "No se pudo crear la cuenta. Inténtalo de nuevo."
+        );
       }
 
       return;
     }
 
-    const {
-      data: loginData,
-      error: loginError
-    } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password: pass
-      });
+    // 3. Si el correo ya está registrado,
+    // intentamos iniciar sesión
+    const signupMessage = String(
+      signUpError.message || ""
+    ).toLowerCase();
 
-    if (loginError) {
-      toast(
-        "No se pudo iniciar sesión: " +
-          loginError.message
+    const alreadyExists =
+      signupMessage.includes("already registered") ||
+      signupMessage.includes("user already exists") ||
+      signupMessage.includes("already been registered");
+
+    if (!alreadyExists) {
+      // MOSTRAMOS EL ERROR REAL DEL REGISTRO
+      console.error(
+        "FSM - Error real de registro:",
+        signUpError
       );
+
+      toast(
+        "No se pudo crear la cuenta: " +
+        signUpError.message
+      );
+
       return;
     }
 
+    // 4. La cuenta ya existe → intentamos iniciar sesión
+    const {
+      data: loginData,
+      error: loginError
+    } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password: pass
+    });
+
+    if (loginError) {
+      console.error(
+        "FSM - Error real de inicio de sesión:",
+        loginError
+      );
+
+      toast(
+        "No se pudo iniciar sesión: " +
+        loginError.message
+      );
+
+      return;
+    }
+
+    if (!loginData?.user) {
+      toast(
+        "No se pudo recuperar tu usuario."
+      );
+
+      return;
+    }
+
+    // 5. Sesión correcta
     await loadProfile(loginData.user);
 
-    toast("Sesión iniciada.");
+    toast("Sesión iniciada correctamente.");
 
     go("account");
-  } catch (e) {
+
+  } catch (error) {
     console.error(
-      "FSM - Error de autenticación:",
-      e
+      "FSM - Error inesperado de autenticación:",
+      error
     );
 
     toast(
-      "Error al conectar con Supabase."
+      "Ha ocurrido un error al conectar con Supabase."
     );
+
   } finally {
     if (btn) {
       btn.disabled = false;
       btn.textContent = "CREAR / ENTRAR";
+    }
+  }
+}
     }
   }
 }
