@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="FC Mobile FSM — herramienta para jugadores de FC Mobile">
 <title>FC Mobile FSM</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
 <header class="topbar">
   <div class="logo"><span>⚽</span><b>FSM</b></div>
   <div class="brand">FC MOBILE <em>FSM</em><small class="tag">TU CENTRO PARA JUGAR MEJOR</small></div>
   <div class="top-actions"><span id="usage" class="badge">🎟️ 2/2</span><button id="accountBtn" class="btn">👤 Cuenta</button><button id="proBtn" class="btn primary">⭐ FSM PRO</button></div>
-</header>
+</header> 
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
 <div class="app">
 <aside class="sidebar">
   <button class="nav active" data-page="home">🏠 Inicio</button><button class="nav" data-page="players">👤 Jugadores</button><button class="nav" data-page="ai">🤖 FSM IA</button><button class="nav" data-page="compare">⚖️ Comparar</button><button class="nav" data-page="squad">👥 Plantilla</button><button class="nav" data-page="market">📈 Mercado</button><button class="nav" data-page="account">👤 Mi cuenta</button>
@@ -46,7 +46,7 @@
 <section id="account" class="page">
 <div class="panel">
  <h2>👤 Mi cuenta</h2><p class="muted">Tu perfil y estado de FSM.</p>
- <div id="authBox"><div class="form2"><div class="field"><label>Email</label><input id="email" type="email" placeholder="tu@email.com"></div><div class="field"><label>Contraseña</label><input id="password" type="password" placeholder="Mínimo 6 caracteres"></div></div><button id="authSubmit" class="btn primary fullbtn">CREAR / ENTRAR</button><div class="notice" style="margin-top:12px">Prototipo local: no uses una contraseña real. Antes de publicar conectaremos autenticación segura.</div></div>
+ <div id="authBox"><div class="form2"><div class="field"><label>Email</label><input id="email" type="email" placeholder="tu@email.com"></div><div class="field"><label>Contraseña</label><input id="password" type="password" placeholder="Mínimo 6 caracteres"></div></div><button id="authSubmit" class="btn primary fullbtn">CREAR / ENTRAR</button><div class="notice" style="margin-top:12px">Cuenta protegida con Supabase. Puedes registrarte o iniciar sesión.</div></div>
  <div id="loggedBox" style="display:none"><p>Email: <b id="userEmail"></b></p><p>Plan: <b id="planText">FREE</b></p><p>Uso: <b id="remaining"></b></p><button id="logout" class="btn">Cerrar sesión</button></div>
 </div>
 <div class="panel pro"><h2>⭐ FSM PRO</h2><div class="pricebig">2,99 € <small>/mes</small></div><ul><li>♾️ Análisis ilimitados</li><li>🧠 IA avanzada</li><li>📊 Herramientas de plantilla</li><li>📈 Funciones de mercado futuras</li></ul><button id="accountPro" class="btn primary">VER PRO</button><div class="notice" style="margin-top:12px">El pago real se conectará en la fase online. Esta versión no cobra dinero.</div></div>
@@ -57,144 +57,153 @@
 
 <div id="modal" class="modal"><div class="panel modalbox pro"><button id="modalClose" class="close">×</button><div class="eyebrow">FSM PRO</div><h2>Desbloquea todo FSM</h2><p class="muted">2,99 € / mes</p><ul><li>♾️ Análisis ilimitados</li><li>🧠 Recomendaciones avanzadas</li><li>📊 Herramientas premium</li></ul><button id="activate" class="btn primary fullbtn">ACTIVAR PRO · DEMO</button><div class="notice" style="margin-top:12px">No se realiza ningún cobro en esta versión.</div></div></div>
 <div id="toast" class="toast"></div>
-<script src="players.js"></script><script src="app.js"></script> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-document.addEventListener("DOMContentLoaded",()=>{
-  const homePro=document.getElementById("homePro"),accountPro=document.getElementById("accountPro");
-  homePro.onclick=()=>document.getElementById("modal").classList.add("show");
-  accountPro.onclick=()=>document.getElementById("modal").classList.add("show");
-});
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="players.js"></script><script src="app.js"></script>
 <script>
-const SUPABASE_URL = "PEGA_AQUI_TU_SUPABASE_URL";
-const SUPABASE_PUBLISHABLE_KEY = "PEGA_AQUI_TU_PUBLISHABLE_KEY";
+document.addEventListener("DOMContentLoaded", () => {
+  const homePro = document.getElementById("homePro");
+  const accountPro = document.getElementById("accountPro");
+  if (homePro) homePro.onclick = () => document.getElementById("modal").classList.add("show");
+  if (accountPro) accountPro.onclick = () => document.getElementById("modal").classList.add("show");
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
+  // ===== FSM + SUPABASE AUTH =====
+  const SUPABASE_URL = "NEXT_PUBLIC_SUPABASE_URL=https://jshevgjyweoianpbbjdl.supabase.co
+";
+  const SUPABASE_PUBLISHABLE_KEY = "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6UTaFORK";
 
-const authSubmit = document.getElementById("authSubmit");
-const authBox = document.getElementById("authBox");
-const loggedBox = document.getElementById("loggedBox");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const userEmail = document.getElementById("userEmail");
-const planText = document.getElementById("planText");
-const remaining = document.getElementById("remaining");
-const logoutBtn = document.getElementById("logout");
-
-async function updateAccount(user) {
-  if (!user) {
-    authBox.style.display = "";
-    loggedBox.style.display = "none";
+  if (SUPABASE_URL.includes("PEGA_AQUI") || SUPABASE_PUBLISHABLE_KEY.includes("PEGA_AQUI")) {
+    console.warn("FSM: faltan las credenciales de Supabase.");
     return;
   }
 
-  authBox.style.display = "none";
-  loggedBox.style.display = "block";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-  userEmail.textContent = user.email || "";
+  const authBox = document.getElementById("authBox");
+  const loggedBox = document.getElementById("loggedBox");
+  const authSubmit = document.getElementById("authSubmit");
+  const logout = document.getElementById("logout");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const userEmail = document.getElementById("userEmail");
+  const planText = document.getElementById("planText");
+  const accountRemaining = document.querySelector("#loggedBox #remaining");
+  const usage = document.getElementById("usage");
+  const aiRemaining = document.querySelector("#ai #remaining");
+  const aiBar = document.getElementById("bar");
 
-  const { data: profile, error } = await supabaseClient
-    .from("profiles")
-    .select("free_uses, is_pro")
-    .eq("id", user.id)
-    .single();
-
-  if (error) {
-    console.error("Error cargando perfil:", error);
-    planText.textContent = "FREE";
-    remaining.textContent = "2";
-    return;
-  }
-
-  planText.textContent = profile.is_pro ? "FSM PRO" : "FREE";
-  remaining.textContent = profile.is_pro
-    ? "Ilimitado"
-    : profile.free_uses;
-}
-
-authSubmit.addEventListener("click", async () => {
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
-
-  if (!email || !password) {
-    alert("Introduce tu email y contraseña.");
-    return;
-  }
-
-  if (password.length < 6) {
-    alert("La contraseña debe tener al menos 6 caracteres.");
-    return;
-  }
-
-  authSubmit.disabled = true;
-  authSubmit.textContent = "CONECTANDO...";
-
-  // Primero intentamos crear la cuenta
-  const { data: signUpData, error: signUpError } =
-    await supabaseClient.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin
-      }
-    });
-
-  if (!signUpError) {
-    if (signUpData.session) {
-      await updateAccount(signUpData.user);
-      alert("Cuenta creada correctamente.");
-    } else {
-      alert(
-        "Cuenta creada. Revisa tu correo electrónico para confirmar la cuenta."
-      );
+  async function loadProfile(user) {
+    if (!user) {
+      authBox.style.display = "";
+      loggedBox.style.display = "none";
+      if (usage) usage.textContent = "🎟️ 2/2";
+      if (aiRemaining) aiRemaining.textContent = "2 análisis restantes";
+      if (aiBar) aiBar.style.width = "100%";
+      return;
     }
 
-    authSubmit.disabled = false;
-    authSubmit.textContent = "CREAR / ENTRAR";
-    return;
+    authBox.style.display = "none";
+    loggedBox.style.display = "block";
+    userEmail.textContent = user.email || "";
+
+    const { data: profile, error } = await supabaseClient
+      .from("profiles")
+      .select("free_uses, is_pro")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("FSM - Error cargando perfil:", error);
+      planText.textContent = "FREE";
+      if (accountRemaining) accountRemaining.textContent = "Error";
+      return;
+    }
+
+    if (!profile) {
+      planText.textContent = "FREE";
+      if (accountRemaining) accountRemaining.textContent = "Perfil pendiente";
+      return;
+    }
+
+    const freeUses = Number(profile.free_uses ?? 0);
+    const isPro = Boolean(profile.is_pro);
+
+    planText.textContent = isPro ? "FSM PRO" : "FREE";
+    if (accountRemaining) accountRemaining.textContent = isPro ? "Ilimitado" : String(freeUses);
+    if (usage) usage.textContent = isPro ? "⭐ PRO · ilimitado" : `🎟️ ${freeUses}/2`;
+    if (aiRemaining) aiRemaining.textContent = isPro ? "Análisis ilimitados" : `${freeUses} análisis restantes`;
+    if (aiBar) aiBar.style.width = isPro ? "100%" : `${Math.max(0, Math.min(100, freeUses * 50))}%`;
   }
 
-  // Si ya existe, intentamos iniciar sesión
-  const { data: loginData, error: loginError } =
-    await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
+  async function registerOrLogin() {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
 
-  if (loginError) {
-    alert("No se pudo iniciar sesión: " + loginError.message);
-  } else {
-    await updateAccount(loginData.user);
+    if (!email || !password) {
+      alert("Introduce tu email y contraseña.");
+      return;
+    }
+    if (password.length < 6) {
+      alert("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+
+    authSubmit.disabled = true;
+    authSubmit.textContent = "CONECTANDO...";
+
+    try {
+      const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({ email, password });
+
+      if (!signUpError) {
+        if (signUpData.session && signUpData.user) {
+          await loadProfile(signUpData.user);
+          alert("Cuenta creada correctamente.");
+        } else {
+          alert("Cuenta creada. Revisa tu correo para confirmar la cuenta y después inicia sesión.");
+        }
+        return;
+      }
+
+      const { data: loginData, error: loginError } =
+        await supabaseClient.auth.signInWithPassword({ email, password });
+
+      if (loginError) {
+        alert("No se pudo iniciar sesión: " + loginError.message);
+        return;
+      }
+
+      await loadProfile(loginData.user);
+    } catch (err) {
+      console.error("FSM - Error de autenticación:", err);
+      alert("Ha ocurrido un error al conectar con Supabase.");
+    } finally {
+      authSubmit.disabled = false;
+      authSubmit.textContent = "CREAR / ENTRAR";
+    }
   }
 
-  authSubmit.disabled = false;
-  authSubmit.textContent = "CREAR / ENTRAR";
-});
+  authSubmit.addEventListener("click", registerOrLogin);
 
-logoutBtn.addEventListener("click", async () => {
-  await supabaseClient.auth.signOut();
-  await updateAccount(null);
-});
+  logout.addEventListener("click", async () => {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+      alert("No se pudo cerrar la sesión.");
+      return;
+    }
+    await loadProfile(null);
+  });
 
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-  await updateAccount(session?.user || null);
-});
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
+    setTimeout(() => loadProfile(session?.user || null), 0);
+  });
 
-// Comprobar si ya había una sesión guardada
-(async () => {
-  const { data } = await supabaseClient.auth.getSession();
-  await updateAccount(data.session?.user || null);
-})();
-</script>
-<script>
-document.addEventListener("DOMContentLoaded",()=>{
- const homePro=document.getElementById("homePro"),accountPro=document.getElementById("accountPro");
- homePro.onclick=()=>document.getElementById("modal").classList.add("show");
- accountPro.onclick=()=>document.getElementById("modal").classList.add("show");
+  (async () => {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) {
+      console.error("FSM - Error recuperando sesión:", error);
+      return;
+    }
+    await loadProfile(data.session?.user || null);
+  })();
 });
 </script>
 </body></html>
