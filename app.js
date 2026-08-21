@@ -402,9 +402,6 @@ async function auth() {
     }
   }
 }
-    }
-  }
-}
 
 async function logout() {
   const { error } =
