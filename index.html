@@ -67,9 +67,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (accountPro) accountPro.onclick = () => document.getElementById("modal").classList.add("show");
 
   // ===== FSM + SUPABASE AUTH =====
-  const SUPABASE_URL = "NEXT_PUBLIC_SUPABASE_URL=https://jshevgjyweoianpbbjdl.supabase.co
+  const SUPABASE_URL = "https://jshevgjyweoianpbbjdl.supabase.co
 ";
-  const SUPABASE_PUBLISHABLE_KEY = "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6UTaFORK";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6UTaFORK";
 
   if (SUPABASE_URL.includes("PEGA_AQUI") || SUPABASE_PUBLISHABLE_KEY.includes("PEGA_AQUI")) {
     console.warn("FSM: faltan las credenciales de Supabase.");
