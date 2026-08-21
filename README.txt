@@ -1,39 +1,28 @@
-FC MOBILE FSM — VERSIÓN FINAL DE PROTOTIPO
-==============================================
+FC Mobile FSM — paquete de Fase 5
+================================
 
-Esta carpeta contiene una versión mucho más limpia y preparada para evolucionar:
-- Fondo oscuro premium con violeta/cian en lugar del verde dominante.
-- Diseño responsive para PC y móvil.
-- Navegación.
-- Jugadores y buscador.
-- FSM IA con 2 usos FREE.
-- Contador persistente.
-- Comparador.
-- Plantilla 4-3-3.
-- Análisis de plantilla.
-- Mercado DEMO.
-- Zona FSM PRO.
-- Estado de cuenta local.
-- Código separado en assets/style.css, assets/app.js y assets/players.js.
+Contenido:
+- index.html: interfaz limpia, sin segundo sistema de autenticación.
+- app.js: lógica principal, Supabase Auth, FSM IA segura, contador de usos desde el perfil, comparador, plantilla y mercado demo.
+- players.js: base actual de demostración de jugadores.
+- style.css: estilos actuales.
+- README.txt: instrucciones.
 
-CÓMO ABRIR
-1. Extrae el ZIP.
-2. Abre index.html con Chrome o Edge.
-3. No muevas la carpeta assets.
+IMPORTANTE
+1) Este paquete NO contiene claves secretas de Supabase. Solo usa la publishable key del frontend.
+2) La Edge Function `fsm-ai-secure` y la base de datos Supabase deben existir en el proyecto.
+3) Esta entrega no incluye pagos Stripe; eso es la Fase 6.
+4) Los precios de jugadores siguen siendo DEMO en esta fase.
+5) El registro depende de la configuración de confirmación de email y de los límites de correo de Supabase.
 
-IMPORTANTE PARA EL LANZAMIENTO REAL
-Esta versión funciona como prototipo local. No realiza cobros reales.
-El límite de 5 usos está guardado en localStorage, por lo que NO es una protección de pago.
-Para vender FSM de verdad hay que publicar la web y añadir:
-1. Backend/servidor.
-2. Base de datos de usuarios.
-3. Autenticación segura.
-4. Control de usos en servidor.
-5. Pasarela de pago y webhooks.
-6. HTTPS, política de privacidad, términos y gestión de suscripciones.
-7. Datos reales de FC Mobile y una fuente/licencia adecuada.
-8. Imágenes y escudos con derechos/licencias adecuados.
+PARA INSTALAR
+1) Haz copia de seguridad del repositorio actual.
+2) Sustituye index.html, app.js, players.js y style.css por estos archivos.
+3) Haz Commit changes.
+4) Espera a que Vercel muestre Ready.
+5) Prueba una sola vez el registro para no disparar el límite de emails.
 
-RECOMENDACIÓN DE NEGOCIO
-Precio inicial de prueba: 2,99 €/mes.
-Mantener 2 análisis gratis para que el usuario vea el valor antes de pagar.
+FLUJO DE FASE 5
+Cuenta -> Supabase Auth -> perfil -> FSM IA -> Edge Function segura -> resultado -> usos restantes.
+
+La autenticación está centralizada en app.js. index.html no contiene un segundo listener de login/registro.
