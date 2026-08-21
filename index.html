@@ -57,7 +57,139 @@
 
 <div id="modal" class="modal"><div class="panel modalbox pro"><button id="modalClose" class="close">×</button><div class="eyebrow">FSM PRO</div><h2>Desbloquea todo FSM</h2><p class="muted">2,99 € / mes</p><ul><li>♾️ Análisis ilimitados</li><li>🧠 Recomendaciones avanzadas</li><li>📊 Herramientas premium</li></ul><button id="activate" class="btn primary fullbtn">ACTIVAR PRO · DEMO</button><div class="notice" style="margin-top:12px">No se realiza ningún cobro en esta versión.</div></div></div>
 <div id="toast" class="toast"></div>
-<script src="players.js"></script><script src="app.js"></script>
+<script src="players.js"></script><script src="app.js"></script> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+document.addEventListener("DOMContentLoaded",()=>{
+  const homePro=document.getElementById("homePro"),accountPro=document.getElementById("accountPro");
+  homePro.onclick=()=>document.getElementById("modal").classList.add("show");
+  accountPro.onclick=()=>document.getElementById("modal").classList.add("show");
+});
+</script>
+
+<script>
+const SUPABASE_URL = "PEGA_AQUI_TU_SUPABASE_URL";
+const SUPABASE_PUBLISHABLE_KEY = "PEGA_AQUI_TU_PUBLISHABLE_KEY";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+const authSubmit = document.getElementById("authSubmit");
+const authBox = document.getElementById("authBox");
+const loggedBox = document.getElementById("loggedBox");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const userEmail = document.getElementById("userEmail");
+const planText = document.getElementById("planText");
+const remaining = document.getElementById("remaining");
+const logoutBtn = document.getElementById("logout");
+
+async function updateAccount(user) {
+  if (!user) {
+    authBox.style.display = "";
+    loggedBox.style.display = "none";
+    return;
+  }
+
+  authBox.style.display = "none";
+  loggedBox.style.display = "block";
+
+  userEmail.textContent = user.email || "";
+
+  const { data: profile, error } = await supabaseClient
+    .from("profiles")
+    .select("free_uses, is_pro")
+    .eq("id", user.id)
+    .single();
+
+  if (error) {
+    console.error("Error cargando perfil:", error);
+    planText.textContent = "FREE";
+    remaining.textContent = "2";
+    return;
+  }
+
+  planText.textContent = profile.is_pro ? "FSM PRO" : "FREE";
+  remaining.textContent = profile.is_pro
+    ? "Ilimitado"
+    : profile.free_uses;
+}
+
+authSubmit.addEventListener("click", async () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!email || !password) {
+    alert("Introduce tu email y contraseña.");
+    return;
+  }
+
+  if (password.length < 6) {
+    alert("La contraseña debe tener al menos 6 caracteres.");
+    return;
+  }
+
+  authSubmit.disabled = true;
+  authSubmit.textContent = "CONECTANDO...";
+
+  // Primero intentamos crear la cuenta
+  const { data: signUpData, error: signUpError } =
+    await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin
+      }
+    });
+
+  if (!signUpError) {
+    if (signUpData.session) {
+      await updateAccount(signUpData.user);
+      alert("Cuenta creada correctamente.");
+    } else {
+      alert(
+        "Cuenta creada. Revisa tu correo electrónico para confirmar la cuenta."
+      );
+    }
+
+    authSubmit.disabled = false;
+    authSubmit.textContent = "CREAR / ENTRAR";
+    return;
+  }
+
+  // Si ya existe, intentamos iniciar sesión
+  const { data: loginData, error: loginError } =
+    await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+  if (loginError) {
+    alert("No se pudo iniciar sesión: " + loginError.message);
+  } else {
+    await updateAccount(loginData.user);
+  }
+
+  authSubmit.disabled = false;
+  authSubmit.textContent = "CREAR / ENTRAR";
+});
+
+logoutBtn.addEventListener("click", async () => {
+  await supabaseClient.auth.signOut();
+  await updateAccount(null);
+});
+
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  await updateAccount(session?.user || null);
+});
+
+// Comprobar si ya había una sesión guardada
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  await updateAccount(data.session?.user || null);
+})();
+</script>
 <script>
 document.addEventListener("DOMContentLoaded",()=>{
  const homePro=document.getElementById("homePro"),accountPro=document.getElementById("accountPro");
