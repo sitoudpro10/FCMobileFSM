@@ -656,6 +656,10 @@ function addImageStyles() {
       featured
         .map(card)
         .join("");
+
+    requestVisibleImages(
+  featured
+);
   }
 
   function renderPlayers() {
