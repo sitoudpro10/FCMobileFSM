@@ -1,975 +1,453 @@
-/* =========================================================
-   FC MOBILE FSM
-   SOPORTE AVANZADO + CENTRO DE AYUDA
-   ========================================================= */
+/* FC MOBILE FSM - SUPPORT V2
+   Guía + FAQ + soporte sin tickets duplicados */
 
 (() => {
   "use strict";
 
-  /* =========================================================
-     SUPABASE
-     ========================================================= */
+  const SUPABASE_URL = "https://jshevgjyweoianpbbjdl.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6UTaFORK";
+  const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const $ = id => document.getElementById(id);
 
-  const SUPABASE_URL =
-    "https://jshevgjyweoianpbbjdl.supabase.co";
-
-  const SUPABASE_KEY =
-    "sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6UTaFORK";
-
-  const supabaseClient =
-    window.supabase?.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY
-    );
-
-  const $ = (id) =>
-    document.getElementById(id);
-
+  let sending = false;
   let currentTicketId = null;
 
-  /* =========================================================
-     FAQ / RESPUESTAS AUTOMÁTICAS
-     ========================================================= */
+  const TOPICS = {
+    cuenta: ["Cuenta", "account", "Para crear una cuenta: Mi cuenta → CREAR CUENTA → confirma el correo → vuelve a FSM → ENTRAR."],
+    ia: ["FSM IA", "ai", "En FSM IA introduce presupuesto, posición y prioridad y pulsa USAR 1 ANÁLISIS."],
+    jugadores: ["Jugadores", "players", "En Jugadores busca por nombre, club o posición. Prueba también con una parte del nombre."],
+    plantilla: ["Plantilla", "squad", "Selecciona los jugadores y pulsa GUARDAR Y ANALIZAR."],
+    mercado: ["Mercado", "market", "Selecciona un jugador, introduce el precio y pulsa ANALIZAR PRECIO."],
+    comparador: ["Comparador", "general", "Selecciona dos jugadores y pulsa COMPARAR."],
+    error: ["Error técnico", "bug", "Recarga con Ctrl + F5. Si continúa, envía una incidencia explicando qué botón pulsaste y qué mensaje apareció."]
+  };
 
-  const FAQ = [
-    {
-      keys: [
-        "cuenta",
-        "crear cuenta",
-        "registrar",
-        "registro"
-      ],
-      title: "Cuenta",
-      answer:
-        "Para crear una cuenta entra en Mi cuenta → CREAR CUENTA. Después confirma el correo electrónico y vuelve a FSM para pulsar ENTRAR."
-    },
-
-    {
-      keys: [
-        "correo",
-        "email",
-        "gmail",
-        "no me llega",
-        "confirmacion",
-        "confirmación"
-      ],
-      title: "Correo",
-      answer:
-        "Si no recibes el correo de confirmación, revisa Spam, Promociones y Correo no deseado. No pulses muchas veces seguidas porque el sistema de correo aplica límites temporales."
-    },
-
-    {
-      keys: [
-        "contraseña",
-        "contrasena",
-        "password",
-        "olvidé",
-        "olvide"
-      ],
-      title: "Contraseña",
-      answer:
-        "Si has olvidado tu contraseña, utiliza el sistema de recuperación de cuenta cuando esté disponible. Nunca compartas tu contraseña con el soporte."
-    },
-
-    {
-      keys: [
-        "ia",
-        "fsm ia",
-        "analisis",
-        "análisis",
-        "recomendacion",
-        "recomendación"
-      ],
-      title: "FSM IA",
-      answer:
-        "FSM IA necesita que tengas la sesión iniciada. Después selecciona presupuesto, posición y prioridad y pulsa USAR 1 ANÁLISIS."
-    },
-
-    {
-      keys: [
-        "jugador",
-        "jugadores",
-        "buscar jugador",
-        "buscador"
-      ],
-      title: "Jugadores",
-      answer:
-        "En Jugadores puedes buscar por nombre, club, posición, liga o programa. El catálogo está preparado para crecer con futuras actualizaciones."
-    },
-
-    {
-      keys: [
-        "comparar",
-        "comparador",
-        "comparación"
-      ],
-      title: "Comparador",
-      answer:
-        "En Comparar selecciona dos jugadores y pulsa COMPARAR para revisar GRL, ritmo, tiro, pase, regate, defensa y físico."
-    },
-
-    {
-      keys: [
-        "plantilla",
-        "equipo",
-        "formacion",
-        "formación"
-      ],
-      title: "Plantilla",
-      answer:
-        "En Plantilla coloca los jugadores en los huecos de la formación y después pulsa GUARDAR Y ANALIZAR para obtener GRL medio, ataque y defensa."
-    },
-
-    {
-      keys: [
-        "mercado",
-        "precio",
-        "comprar",
-        "caro",
-        "barato"
-      ],
-      title: "Mercado",
-      answer:
-        "En Mercado selecciona un jugador, introduce el precio y pulsa ANALIZAR PRECIO. La referencia actual puede ser de demostración hasta conectar una fuente real."
-    },
-
-    {
-      keys: [
-        "pro",
-        "premium",
-        "fsm pro"
-      ],
-      title: "FSM PRO",
-      answer:
-        "FSM PRO está preparado para funciones avanzadas. El sistema de pago real todavía no está activado."
-    },
-
-    {
-      keys: [
-        "error",
-        "no funciona",
-        "fallo",
-        "falla",
-        "no abre",
-        "boton",
-        "botón"
-      ],
-      title: "Error",
-      answer:
-        "Prueba primero a recargar la página con Ctrl + F5. Si continúa, indícanos exactamente qué botón has pulsado y qué mensaje aparece."
-    },
-
-    {
-      keys: [
-        "hack",
-        "hacker",
-        "seguridad",
-        "robo"
-      ],
-      title: "Seguridad",
-      answer:
-        "Nunca compartas tu contraseña, códigos de confirmación ni claves privadas. Si detectas una actividad sospechosa, crea una incidencia urgente."
-    }
-  ];
-
-  /* =========================================================
-     ESTILOS
-     ========================================================= */
+  const GUIDE = {
+    inicio: ["🚀", "Primeros pasos",
+      "1. Crea la cuenta. 2. Confirma el correo. 3. Entra. 4. Prueba FSM IA. 5. Busca jugadores. 6. Compara. 7. Crea tu plantilla."],
+    cuenta: ["👤", "Cuenta y acceso",
+      "Revisa Spam/Promociones si no llega el correo. Usa siempre el enlace de confirmación más reciente."],
+    jugadores: ["👥", "Jugadores",
+      "Busca por nombre, club, posición, liga o programa. Guarda tus favoritos con ⭐."],
+    ia: ["🤖", "FSM IA",
+      "Introduce presupuesto, posición y prioridad y pulsa USAR 1 ANÁLISIS."],
+    comparador: ["⚖️", "Comparador",
+      "Selecciona dos jugadores para comparar GRL, ritmo, tiro, pase, regate, defensa y físico."],
+    plantilla: ["📋", "Plantilla",
+      "Coloca jugadores en la formación y pulsa GUARDAR Y ANALIZAR."],
+    mercado: ["📈", "Mercado",
+      "Introduce el precio y analiza la referencia disponible. Algunas referencias pueden ser de demostración."],
+    pro: ["⭐", "FSM PRO",
+      "Las funciones premium están preparadas. El cobro real todavía no está activado."],
+    seguridad: ["🔐", "Seguridad",
+      "Nunca compartas contraseñas, códigos de confirmación ni claves privadas de Supabase."]
+  };
 
   function addStyles() {
-    if ($("fsmSupportStyles")) {
-      return;
-    }
+    if ($("fsmSupportV2Styles")) return;
 
-    const style =
-      document.createElement("style");
-
-    style.id =
-      "fsmSupportStyles";
-
-    style.textContent = `
-      /* =========================
-         BOTÓN GUÍA
-         ========================= */
-
-      .fsm-guide-button {
-        border: 1px solid #ffffff18;
-        background: #ffffff08;
-        color: #fff;
-        border-radius: 10px;
-        padding: 9px 12px;
-        cursor: pointer;
-        font-weight: 800;
-        font-size: 12px;
+    const s = document.createElement("style");
+    s.id = "fsmSupportV2Styles";
+    s.textContent = `
+      .fsm-sup-btn{
+        border:1px solid #ffffff18;
+        background:#ffffff08;
+        color:#fff;
+        border-radius:10px;
+        padding:9px 12px;
+        cursor:pointer;
+        font-weight:800;
+        font-size:12px
       }
 
-      .fsm-guide-button:hover {
-        background: #ffffff14;
-        border-color: #7c5cff55;
+      .fsm-sup-btn:hover{
+        background:#ffffff14
       }
 
-      /* =========================
-         LANZADOR
-         ========================= */
-
-      .fsm-support-launcher {
-        position: fixed;
-        right: 18px;
-        bottom: 18px;
-        z-index: 99999;
+      .fsm-support-launcher{
+        position:fixed;
+        right:18px;
+        bottom:18px;
+        z-index:99999
       }
 
-      .fsm-support-button {
-        width: 58px;
-        height: 58px;
-        border: 0;
-        border-radius: 50%;
-        background:
-          linear-gradient(
-            135deg,
-            #7c5cff,
-            #6043df
-          );
-        color: #fff;
-        font-size: 24px;
-        cursor: pointer;
-        box-shadow:
-          0 12px 35px #0008;
+      .fsm-support-button{
+        width:58px;
+        height:58px;
+        border:0;
+        border-radius:50%;
+        background:linear-gradient(135deg,#7c5cff,#6043df);
+        color:#fff;
+        font-size:24px;
+        cursor:pointer;
+        box-shadow:0 12px 35px #0008
       }
 
-      .fsm-support-button:hover {
-        transform: translateY(-2px);
+      .fsm-support-window{
+        display:none;
+        position:absolute;
+        right:0;
+        bottom:70px;
+        width:430px;
+        max-width:calc(100vw - 20px);
+        height:650px;
+        max-height:calc(100vh - 100px);
+        background:#0f1521;
+        border:1px solid #ffffff15;
+        border-radius:18px;
+        overflow:hidden;
+        box-shadow:0 25px 90px #000b
       }
 
-      /* =========================
-         VENTANA
-         ========================= */
-
-      .fsm-support-window {
-        display: none;
-        position: absolute;
-        right: 0;
-        bottom: 70px;
-
-        width: 430px;
-        max-width:
-          calc(100vw - 24px);
-
-        height: 650px;
-        max-height:
-          calc(100vh - 100px);
-
-        background: #0f1521;
-        border:
-          1px solid #ffffff15;
-
-        border-radius: 18px;
-        overflow: hidden;
-
-        box-shadow:
-          0 25px 90px #000b;
+      .fsm-support-window.open{
+        display:flex;
+        flex-direction:column
       }
 
-      .fsm-support-window.open {
-        display: flex;
-        flex-direction: column;
+      .fsm-support-header{
+        display:flex;
+        justify-content:space-between;
+        gap:10px;
+        padding:14px 15px;
+        background:linear-gradient(135deg,#1a1532,#101622);
+        border-bottom:1px solid #ffffff0e
       }
 
-      /* =========================
-         CABECERA
-         ========================= */
-
-      .fsm-support-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-
-        padding: 14px 15px;
-
-        background:
-          linear-gradient(
-            135deg,
-            #1a1532,
-            #101622
-          );
-
-        border-bottom:
-          1px solid #ffffff0e;
+      .fsm-support-title{
+        color:#fff;
+        font-weight:900
       }
 
-      .fsm-support-title {
-        color: #fff;
-        font-weight: 900;
-        font-size: 15px;
+      .fsm-support-subtitle{
+        color:#929caf;
+        font-size:10px;
+        margin-top:3px
       }
 
-      .fsm-support-subtitle {
-        color: #929caf;
-        font-size: 10px;
-        margin-top: 3px;
+      .fsm-support-close{
+        border:0;
+        background:#ffffff08;
+        color:#fff;
+        border-radius:8px;
+        padding:7px 10px;
+        cursor:pointer
       }
 
-      .fsm-support-close {
-        border: 0;
-        background: #ffffff08;
-        color: #fff;
-        border-radius: 8px;
-        padding: 7px 10px;
-        cursor: pointer;
+      .fsm-support-messages{
+        flex:1;
+        overflow:auto;
+        padding:14px
       }
 
-      /* =========================
-         MENSAJES
-         ========================= */
-
-      .fsm-support-messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 14px;
+      .fsm-support-message{
+        max-width:88%;
+        margin:8px 0;
+        padding:10px 12px;
+        border-radius:13px;
+        font-size:13px;
+        line-height:1.5;
+        white-space:pre-wrap;
+        word-break:break-word
       }
 
-      .fsm-support-message {
-        max-width: 88%;
-        margin: 8px 0;
-
-        padding: 10px 12px;
-
-        border-radius: 13px;
-
-        font-size: 13px;
-        line-height: 1.5;
-
-        word-break: break-word;
+      .fsm-support-message.bot{
+        background:#ffffff08;
+        color:#edf0f7
       }
 
-      .fsm-support-message.bot {
-        background: #ffffff08;
-        color: #edf0f7;
+      .fsm-support-message.user{
+        margin-left:auto;
+        background:#704cf4;
+        color:#fff
       }
 
-      .fsm-support-message.user {
-        margin-left: auto;
-        background: #704cf4;
-        color: #fff;
+      .fsm-support-message.system{
+        margin:10px auto;
+        text-align:center;
+        background:#ffffff05;
+        color:#929caf;
+        font-size:11px
       }
 
-      .fsm-support-message.system {
-        margin: 10px auto;
-        max-width: 95%;
-
-        background: #ffffff05;
-        color: #929caf;
-
-        text-align: center;
-        font-size: 11px;
+      .fsm-support-quick{
+        display:flex;
+        flex-wrap:wrap;
+        gap:6px;
+        padding:0 13px 10px
       }
 
-      /* =========================
-         ACCIONES RÁPIDAS
-         ========================= */
-
-      .fsm-support-quick {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-
-        padding:
-          0 13px 10px;
+      .fsm-support-quick button{
+        border:1px solid #ffffff12;
+        background:#ffffff06;
+        color:#fff;
+        border-radius:999px;
+        padding:7px 10px;
+        font-size:11px;
+        cursor:pointer
       }
 
-      .fsm-support-quick button {
-        border:
-          1px solid #ffffff12;
-
-        background:
-          #ffffff06;
-
-        color: #fff;
-
-        border-radius: 999px;
-
-        padding:
-          7px 10px;
-
-        font-size: 11px;
-        cursor: pointer;
+      .fsm-support-form{
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+        padding:10px;
+        border-top:1px solid #ffffff0e
       }
 
-      .fsm-support-quick button:hover {
-        background:
-          #7c5cff22;
+      .fsm-support-select{
+        width:100%;
+        border:1px solid #ffffff12;
+        background:#080c13;
+        color:#fff;
+        border-radius:9px;
+        padding:8px;
+        font-size:11px
       }
 
-      /* =========================
-         FORMULARIO
-         ========================= */
-
-      .fsm-support-form {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-
-        padding: 10px;
-
-        border-top:
-          1px solid #ffffff0e;
+      .fsm-support-row{
+        display:flex;
+        gap:7px
       }
 
-      .fsm-support-row {
-        display: flex;
-        gap: 7px;
+      .fsm-support-input{
+        flex:1;
+        min-width:0;
+        height:54px;
+        resize:none;
+        border:1px solid #ffffff12;
+        background:#080c13;
+        color:#fff;
+        border-radius:10px;
+        padding:10px;
+        outline:none;
+        font:13px inherit
       }
 
-      .fsm-support-input {
-        flex: 1;
-        min-width: 0;
-
-        height: 54px;
-
-        resize: none;
-
-        border:
-          1px solid #ffffff12;
-
-        background:
-          #080c13;
-
-        color:
-          #fff;
-
-        border-radius: 10px;
-
-        padding: 10px;
-
-        outline: none;
-
-        font-family:
-          inherit;
-
-        font-size:
-          13px;
+      .fsm-support-send{
+        border:0;
+        border-radius:10px;
+        background:#7657ff;
+        color:#fff;
+        padding:0 14px;
+        font-weight:900;
+        cursor:pointer
       }
 
-      .fsm-support-input:focus {
-        border-color:
-          #7657ff;
+      .fsm-support-send:disabled{
+        opacity:.5;
+        cursor:not-allowed
       }
 
-      .fsm-support-send {
-        border: 0;
-
-        border-radius: 10px;
-
-        background:
-          #7657ff;
-
-        color:
-          #fff;
-
-        padding:
-          0 14px;
-
-        font-weight:
-          900;
-
-        cursor:
-          pointer;
+      .fsm-support-status{
+        padding:0 13px 7px;
+        color:#929caf;
+        font-size:10px
       }
 
-      .fsm-support-send:disabled {
-        opacity: .5;
-        cursor: not-allowed;
+      .fsm-help-overlay{
+        display:none;
+        position:fixed;
+        inset:0;
+        z-index:99998;
+        background:#000c;
+        backdrop-filter:blur(10px);
+        padding:14px;
+        align-items:center;
+        justify-content:center
       }
 
-      /* =========================
-         SELECTS
-         ========================= */
-
-      .fsm-support-select {
-        width: 100%;
-
-        border:
-          1px solid #ffffff12;
-
-        background:
-          #080c13;
-
-        color:
-          #fff;
-
-        border-radius:
-          9px;
-
-        padding:
-          8px;
-
-        outline:
-          none;
-
-        font-size:
-          11px;
+      .fsm-help-overlay.open{
+        display:flex
       }
 
-      /* =========================
-         ESTADO
-         ========================= */
-
-      .fsm-support-status {
-        padding:
-          0 13px 7px;
-
-        color:
-          #929caf;
-
-        font-size:
-          10px;
+      .fsm-help-window{
+        width:min(1050px,100%);
+        max-height:92vh;
+        overflow:hidden;
+        display:grid;
+        grid-template-columns:270px 1fr;
+        background:#0f1521;
+        border:1px solid #ffffff15;
+        border-radius:20px;
+        box-shadow:0 25px 90px #000b
       }
 
-      /* =========================
-         GUÍA
-         ========================= */
-
-      .fsm-help-overlay {
-        display:
-          none;
-
-        position:
-          fixed;
-
-        inset:
-          0;
-
-        z-index:
-          99998;
-
-        background:
-          #000c;
-
-        backdrop-filter:
-          blur(10px);
-
-        padding:
-          14px;
-
-        align-items:
-          center;
-
-        justify-content:
-          center;
+      .fsm-help-sidebar{
+        padding:18px;
+        border-right:1px solid #ffffff10;
+        background:linear-gradient(180deg,#151126,#101622);
+        overflow:auto
       }
 
-      .fsm-help-overlay.open {
-        display:
-          flex;
+      .fsm-help-brand{
+        color:#bcaeff;
+        font-size:11px;
+        font-weight:900;
+        letter-spacing:1.5px
       }
 
-      .fsm-help-window {
-        width:
-          min(1050px,100%);
-
-        max-height:
-          92vh;
-
-        overflow:
-          hidden;
-
-        display:
-          grid;
-
-        grid-template-columns:
-          280px 1fr;
-
-        background:
-          #0f1521;
-
-        border:
-          1px solid #ffffff15;
-
-        border-radius:
-          20px;
-
-        box-shadow:
-          0 25px 90px #000b;
+      .fsm-help-sidebar h2{
+        color:#fff;
+        margin:6px 0 15px
       }
 
-      .fsm-help-sidebar {
-        padding:
-          18px;
-
-        border-right:
-          1px solid #ffffff10;
-
-        background:
-          linear-gradient(
-            180deg,
-            #151126,
-            #101622
-          );
-
-        overflow:
-          auto;
+      .fsm-help-search{
+        width:100%;
+        box-sizing:border-box;
+        border:1px solid #ffffff12;
+        background:#080c13;
+        color:#fff;
+        border-radius:10px;
+        padding:10px;
+        outline:none
       }
 
-      .fsm-help-brand {
-        color:
-          #bcaeff;
-
-        font-size:
-          11px;
-
-        font-weight:
-          900;
-
-        letter-spacing:
-          1.5px;
+      .fsm-help-nav{
+        display:grid;
+        gap:6px;
+        margin-top:12px
       }
 
-      .fsm-help-sidebar h2 {
-        color:
-          #fff;
-
-        margin:
-          6px 0 15px;
-      }
-
-      .fsm-help-search {
-        width:
-          100%;
-
-        box-sizing:
-          border-box;
-
-        border:
-          1px solid #ffffff12;
-
-        background:
-          #080c13;
-
-        color:
-          #fff;
-
-        border-radius:
-          10px;
-
-        padding:
-          10px;
-
-        outline:
-          none;
-      }
-
-      .fsm-help-nav {
-        display:
-          grid;
-
-        gap:
-          6px;
-
-        margin-top:
-          12px;
-      }
-
-      .fsm-help-nav button {
-        width:
-          100%;
-
-        text-align:
-          left;
-
-        border:
-          1px solid transparent;
-
-        background:
-          transparent;
-
-        color:
-          #aeb5c5;
-
-        border-radius:
-          10px;
-
-        padding:
-          10px;
-
-        cursor:
-          pointer;
+      .fsm-help-nav button{
+        width:100%;
+        text-align:left;
+        border:1px solid transparent;
+        background:transparent;
+        color:#aeb5c5;
+        border-radius:10px;
+        padding:10px;
+        cursor:pointer
       }
 
       .fsm-help-nav button.active,
-      .fsm-help-nav button:hover {
-        background:
-          #ffffff08;
-
-        color:
-          #fff;
-
-        border-color:
-          #ffffff10;
+      .fsm-help-nav button:hover{
+        background:#ffffff08;
+        color:#fff;
+        border-color:#ffffff10
       }
 
-      .fsm-help-content {
-        min-width:
-          0;
-
-        overflow:
-          auto;
-
-        padding:
-          22px;
+      .fsm-help-content{
+        min-width:0;
+        overflow:auto;
+        padding:22px
       }
 
-      .fsm-help-title {
-        color:
-          #fff;
-
-        font-size:
-          30px;
-
-        margin:
-          3px 0 6px;
+      .fsm-help-title{
+        color:#fff;
+        font-size:30px;
+        margin:3px 0 6px
       }
 
-      .fsm-help-intro {
-        color:
-          #929caf;
-
-        line-height:
-          1.55;
-
-        margin:
-          0 0 20px;
+      .fsm-help-intro{
+        color:#929caf;
+        line-height:1.55;
+        margin:0 0 20px
       }
 
-      .fsm-help-card {
-        border:
-          1px solid #ffffff10;
-
-        background:
-          #ffffff04;
-
-        border-radius:
-          14px;
-
-        padding:
-          14px;
-
-        margin-bottom:
-          12px;
+      .fsm-help-card{
+        border:1px solid #ffffff10;
+        background:#ffffff04;
+        border-radius:14px;
+        padding:14px;
+        margin-bottom:12px
       }
 
-      .fsm-help-card h3 {
-        color:
-          #fff;
-
-        font-size:
-          14px;
-
-        margin:
-          0 0 8px;
+      .fsm-help-card h3{
+        color:#fff;
+        font-size:14px;
+        margin:0 0 8px
       }
 
-      .fsm-help-faq {
-        border:
-          1px solid #ffffff0d;
-
-        border-radius:
-          12px;
-
-        overflow:
-          hidden;
-
-        margin:
-          8px 0;
+      .fsm-help-card p{
+        color:#929caf;
+        font-size:12px;
+        line-height:1.55
       }
 
-      .fsm-help-faq button {
-        width:
-          100%;
-
-        text-align:
-          left;
-
-        border:
-          0;
-
-        background:
-          #ffffff05;
-
-        color:
-          #fff;
-
-        padding:
-          12px;
-
-        cursor:
-          pointer;
-
-        font-weight:
-          800;
-      }
-
-      .fsm-help-faq-answer {
-        display:
-          none;
-
-        padding:
-          0 12px 12px;
-
-        color:
-          #929caf;
-
-        font-size:
-          12px;
-
-        line-height:
-          1.55;
-      }
-
-      .fsm-help-faq.open
-      .fsm-help-faq-answer {
-        display:
-          block;
-      }
-
-      @media(max-width:820px) {
-
-        .fsm-help-window {
-          grid-template-columns:
-            1fr;
+      @media(max-width:820px){
+        .fsm-help-window{
+          grid-template-columns:1fr
         }
 
-        .fsm-help-sidebar {
-          border-right:
-            0;
-
-          border-bottom:
-            1px solid #ffffff10;
-
-          max-height:
-            220px;
+        .fsm-help-sidebar{
+          border-right:0;
+          border-bottom:1px solid #ffffff10;
+          max-height:220px
         }
-
       }
 
-      @media(max-width:600px) {
-
-        .fsm-support-launcher {
-          right:
-            10px;
-
-          bottom:
-            70px;
+      @media(max-width:600px){
+        .fsm-support-launcher{
+          right:10px;
+          bottom:70px
         }
 
-        .fsm-support-window {
-          width:
-            calc(100vw - 20px);
-
-          height:
-            72vh;
+        .fsm-support-window{
+          width:calc(100vw - 20px);
+          height:72vh
         }
 
-        .fsm-help-content {
-          padding:
-            15px;
+        .fsm-support-row{
+          flex-direction:column
         }
 
-        .fsm-help-title {
-          font-size:
-            24px;
+        .fsm-support-send{
+          min-height:44px
         }
 
+        .fsm-help-content{
+          padding:15px
+        }
+
+        .fsm-help-title{
+          font-size:24px
+        }
       }
     `;
 
-    document.head.appendChild(style);
+    document.head.appendChild(s);
   }
 
-  /* =========================================================
-     GUÍA
-     ========================================================= */
+  function escapeHtml(v) {
+    return String(v ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
 
-  const GUIDE = {
-    inicio: {
-      icon: "🚀",
-      title: "Primeros pasos",
-      text:
-        "Crea tu cuenta, confirma el correo, inicia sesión y empieza con FSM IA."
-    },
+  function addMessage(text,type) {
+    const box=$("fsmSupportMessages");
+    if(!box)return;
 
-    cuenta: {
-      icon: "👤",
-      title: "Cuenta y acceso",
-      text:
-        "Solución de problemas relacionados con registro, inicio de sesión, correo y contraseña."
-    },
+    const d=document.createElement("div");
 
-    jugadores: {
-      icon: "👥",
-      title: "Jugadores",
-      text:
-        "Cómo buscar jugadores y entender la información disponible."
-    },
+    d.className=
+      `fsm-support-message ${type}`;
 
-    ia: {
-      icon: "🤖",
-      title: "FSM IA",
-      text:
-        "Cómo utilizar la IA para encontrar jugadores según presupuesto y prioridad."
-    },
+    d.textContent=
+      text;
 
-    comparador: {
-      icon: "⚖️",
-      title: "Comparador",
-      text:
-        "Compara dos jugadores y analiza sus estadísticas."
-    },
+    box.appendChild(d);
 
-    plantilla: {
-      icon: "📋",
-      title: "Plantilla",
-      text:
-        "Crea una plantilla y analiza su equilibrio."
-    },
-
-    mercado: {
-      icon: "📈",
-      title: "Mercado",
-      text:
-        "Analiza precios y descubre si una oferta parece buena."
-    },
-
-    pro: {
-      icon: "⭐",
-      title: "FSM PRO",
-      text:
-        "Funciones premium y futuras ventajas."
-    },
-
-    seguridad: {
-      icon: "🔐",
-      title: "Seguridad",
-      text:
-        "Buenas prácticas para proteger tu cuenta."
-    }
-  };
+    box.scrollTop=
+      box.scrollHeight;
+  }
 
   function createGuide() {
-    if ($("fsmHelpOverlay")) {
-      return;
-    }
+    if($("fsmHelpOverlay"))return;
 
-    const overlay =
+    const overlay=
       document.createElement("div");
 
-    overlay.id =
+    overlay.id=
       "fsmHelpOverlay";
 
-    overlay.className =
+    overlay.className=
       "fsm-help-overlay";
 
-    overlay.innerHTML = `
+    overlay.innerHTML=`
       <div class="fsm-help-window">
 
         <aside class="fsm-help-sidebar">
@@ -985,15 +463,14 @@
           <input
             id="fsmHelpSearch"
             class="fsm-help-search"
-            placeholder="🔎 Buscar..."
+            placeholder="🔎 Buscar ayuda..."
             autocomplete="off"
           >
 
           <nav
             id="fsmHelpNav"
             class="fsm-help-nav"
-          >
-          </nav>
+          ></nav>
 
         </aside>
 
@@ -1004,7 +481,7 @@
               display:flex;
               justify-content:space-between;
               gap:12px;
-              align-items:flex-start;
+              align-items:flex-start
             "
           >
 
@@ -1018,9 +495,7 @@
               <h1
                 id="fsmHelpTitle"
                 class="fsm-help-title"
-              >
-                Ayuda
-              </h1>
+              ></h1>
 
               <p
                 id="fsmHelpText"
@@ -1031,7 +506,7 @@
 
             <button
               id="fsmHelpClose"
-              class="fsm-help-button"
+              class="fsm-sup-btn"
               type="button"
             >
               Cerrar
@@ -1050,521 +525,219 @@
       overlay
     );
 
-    buildGuideNav();
-
-    renderGuide(
-      "inicio"
-    );
-
-    $("fsmHelpClose").onclick =
-      closeGuide;
-
-    overlay.onclick =
-      (event) => {
-
-        if (
-          event.target ===
-          overlay
-        ) {
-          closeGuide();
-        }
-
-      };
-
-    $("fsmHelpSearch").oninput =
-      searchGuide;
-  }
-
-  function buildGuideNav() {
-    const nav =
+    const nav=
       $("fsmHelpNav");
-
-    if (!nav) {
-      return;
-    }
-
-    nav.innerHTML = "";
 
     Object.entries(
       GUIDE
     ).forEach(
-      ([key, value]) => {
-
-        const button =
+      ([key,item])=>{
+        const b=
           document.createElement(
             "button"
           );
 
-        button.type =
-          "button";
+        b.type="button";
+        b.dataset.key=key;
+        b.textContent=
+          `${item[0]} ${item[1]}`;
 
-        button.dataset.key =
-          key;
+        b.onclick=
+          ()=>renderGuide(key);
 
-        button.textContent =
-          `${value.icon} ${value.title}`;
-
-        button.onclick =
-          () =>
-            renderGuide(
-              key
-            );
-
-        nav.appendChild(
-          button
-        );
-
+        nav.appendChild(b);
       }
+    );
+
+    $("fsmHelpClose").onclick=
+      closeGuide;
+
+    overlay.onclick=
+      e=>{
+        if(e.target===overlay){
+          closeGuide();
+        }
+      };
+
+    $("fsmHelpSearch").oninput=
+      searchGuide;
+
+    renderGuide(
+      "inicio"
     );
   }
 
   function renderGuide(
     key
   ) {
-    const item =
+    const item=
       GUIDE[key];
 
-    if (!item) {
-      return;
-    }
+    if(!item)return;
 
     document
       .querySelectorAll(
         "#fsmHelpNav button"
       )
       .forEach(
-        (button) => {
-
-          button.classList.toggle(
-            "active",
-            button.dataset.key ===
-              key
-          );
-
-        }
+        b=>b.classList.toggle(
+          "active",
+          b.dataset.key===key
+        )
       );
 
-    $("fsmHelpIcon").textContent =
-      item.icon;
+    $("fsmHelpIcon").textContent=
+      item[0];
 
-    $("fsmHelpTitle").textContent =
-      item.title;
+    $("fsmHelpTitle").textContent=
+      item[1];
 
-    $("fsmHelpText").textContent =
-      item.text;
+    $("fsmHelpText").textContent=
+      item[2];
 
-    const body =
-      $("fsmHelpBody");
+    $("fsmHelpBody").innerHTML=`
+      <div class="fsm-help-card">
 
-    const sections = {
-      inicio: `
-        <div class="fsm-help-card">
-          <h3>✅ Ruta recomendada</h3>
+        <h3>
+          📚 Ayuda
+        </h3>
 
-          <div>
-            1️⃣ Crear cuenta<br>
-            2️⃣ Confirmar correo<br>
-            3️⃣ Entrar<br>
-            4️⃣ Probar FSM IA<br>
-            5️⃣ Buscar jugadores<br>
-            6️⃣ Comparar<br>
-            7️⃣ Crear plantilla<br>
-            8️⃣ Probar Mercado
-          </div>
-        </div>
+        <p>
+          ${escapeHtml(item[2])}
+        </p>
 
-        <div class="fsm-help-card">
-          <h3>💡 Consejo</h3>
-          <div>
-            Si eres nuevo, empieza por FSM IA y después
-            prueba Comparar y Plantilla.
-          </div>
-        </div>
-      `,
+      </div>
 
-      cuenta: `
-        <div class="fsm-help-card">
+      <div class="fsm-help-card">
 
-          <h3>📝 Crear cuenta</h3>
+        <h3>
+          💡 Consejo
+        </h3>
 
-          <p>
-            Ve a Mi cuenta → CREAR CUENTA →
-            introduce correo y contraseña →
-            confirma tu correo → vuelve a FSM →
-            ENTRAR.
-          </p>
-
-        </div>
-
-        <div class="fsm-help-card">
-
-          <h3>❓ Problemas frecuentes</h3>
-
-          ${faq(
-            "No me llega el correo",
-            "Revisa Spam, Promociones y Correo no deseado. Evita solicitar muchos correos seguidos."
-          )}
-
-          ${faq(
-            "El enlace ha caducado",
-            "Solicita un correo nuevo y utiliza únicamente el enlace más reciente."
-          )}
-
-          ${faq(
-            "No puedo entrar",
-            "Comprueba que el correo y la contraseña sean correctos y que la cuenta esté confirmada."
-          )}
-
-        </div>
-      `,
-
-      jugadores: `
-        <div class="fsm-help-card">
-
-          <h3>🔎 Buscar jugadores</h3>
-
-          <p>
-            Puedes buscar por nombre, club, posición,
-            liga o programa.
-          </p>
-
-          <p>
-            Ejemplo:
-            <strong>Mbappé</strong>,
-            <strong>ST</strong> o
-            <strong>Real Madrid</strong>.
-          </p>
-
-        </div>
-      `,
-
-      ia: `
-        <div class="fsm-help-card">
-
-          <h3>🤖 Cómo usar FSM IA</h3>
-
-          <p>
-            1. Inicia sesión.<br>
-            2. Introduce tu presupuesto.<br>
-            3. Elige posición.<br>
-            4. Elige prioridad.<br>
-            5. Pulsa USAR 1 ANÁLISIS.
-          </p>
-
-        </div>
-
-        <div class="fsm-help-card">
-
-          <h3>💡 Consejo</h3>
-
-          <p>
-            Usa calidad/precio para buscar opciones
-            equilibradas y GRL cuando quieras priorizar
-            el nivel general.
-          </p>
-
-        </div>
-      `,
-
-      comparador: `
-        <div class="fsm-help-card">
-
-          <h3>⚖️ Comparar dos jugadores</h3>
-
-          <p>
-            Selecciona Jugador A y Jugador B y pulsa
-            COMPARAR.
-          </p>
-
-          <p>
-            FSM compara GRL, ritmo, tiro, pase,
-            regate, defensa y físico.
-          </p>
-
-        </div>
-      `,
-
-      plantilla: `
-        <div class="fsm-help-card">
-
-          <h3>📋 Crear plantilla</h3>
-
-          <p>
-            Selecciona jugadores en las diferentes posiciones
-            y pulsa GUARDAR Y ANALIZAR.
-          </p>
-
-          <p>
-            El sistema calcula GRL medio,
-            ataque y defensa.
-          </p>
-
-        </div>
-
-        <div class="fsm-help-card">
-
-          <h3>⚠️ Importante</h3>
-
-          <p>
-            Estamos mejorando la validación de posiciones
-            para evitar colocar jugadores en posiciones
-            incompatibles.
-          </p>
-
-        </div>
-      `,
-
-      mercado: `
-        <div class="fsm-help-card">
-
-          <h3>📈 Analizar un precio</h3>
-
-          <p>
-            Selecciona un jugador, escribe un precio
-            y pulsa ANALIZAR PRECIO.
-          </p>
-
-          <p>
-            🟢 Buena compra<br>
-            🟡 Precio normal<br>
-            🔴 Caro
-          </p>
-
-        </div>
-
-        <div class="fsm-help-card">
-
-          <h3>⚠️ Fuente de precios</h3>
-
-          <p>
-            Hasta conectar una fuente externa real,
-            algunos precios pueden ser de demostración.
-          </p>
-
-        </div>
-      `,
-
-      pro: `
-        <div class="fsm-help-card">
-
-          <h3>⭐ FSM PRO</h3>
-
-          <p>
-            PRO está preparado para funciones avanzadas,
-            análisis ilimitados y herramientas premium.
-          </p>
-
-        </div>
-
-        <div class="fsm-help-card">
-
-          <h3>💳 Pagos</h3>
-
-          <p>
-            El sistema de cobro real todavía no está
-            activado.
-          </p>
-
-        </div>
-      `,
-
-      seguridad: `
-        <div class="fsm-help-card">
-
-          <h3>🔐 Protege tu cuenta</h3>
-
-          <p>
-            • Nunca compartas tu contraseña.<br>
-            • No compartas códigos de confirmación.<br>
-            • No compartas claves privadas de Supabase.<br>
-            • Usa una contraseña diferente a la de otras webs.<br>
-            • Informa al soporte de cualquier comportamiento extraño.
-          </p>
-
-        </div>
-      `
-    };
-
-    body.innerHTML =
-      sections[key] ||
-      sections.inicio;
-
-    body
-      .querySelectorAll(
-        ".fsm-help-faq button"
-      )
-      .forEach(
-        (button) => {
-
-          button.onclick =
-            () => {
-
-              button.parentElement
-                .classList.toggle(
-                  "open"
-                );
-
-            };
-
-        }
-      );
-  }
-
-  function faq(
-    question,
-    answer
-  ) {
-    return `
-      <div class="fsm-help-faq">
-
-        <button
-          type="button"
-        >
-          ${escapeHtml(question)}
-        </button>
-
-        <div
-          class="fsm-help-faq-answer"
-        >
-          ${escapeHtml(answer)}
-        </div>
+        <p>
+          Si no encuentras lo que buscas,
+          abre 💬 Soporte y envía una incidencia.
+        </p>
 
       </div>
     `;
   }
 
   function searchGuide() {
-    const query =
+    const q=
       $("fsmHelpSearch")
         ?.value
         .trim()
         .toLowerCase();
 
-    if (!query) {
-      renderGuide("inicio");
+    if(!q){
+      renderGuide(
+        "inicio"
+      );
       return;
     }
 
-    const matches =
+    const found=
       Object.entries(
         GUIDE
-      ).filter(
-        ([, item]) => {
-
-          return `
-            ${item.title}
-            ${item.text}
-          `
+      ).find(
+        ([,item])=>
+          JSON.stringify(
+            item
+          )
             .toLowerCase()
-            .includes(query);
-
-        }
+            .includes(q)
       );
 
-    if (!matches.length) {
-
-      $("fsmHelpBody").innerHTML = `
-        <div class="fsm-help-card">
-
-          <h3>
-            🔎 No hemos encontrado esa ayuda
-          </h3>
-
-          <p>
-            Prueba con:
-            cuenta, correo, IA, jugadores,
-            plantilla, mercado, contraseña o error.
-          </p>
-
-        </div>
-      `;
-
+    if(found){
+      renderGuide(
+        found[0]
+      );
       return;
     }
 
-    renderGuide(
-      matches[0][0]
-    );
+    $("fsmHelpBody").innerHTML=`
+      <div class="fsm-help-card">
+
+        <h3>
+          🔎 No encontramos esa ayuda
+        </h3>
+
+        <p>
+          Prueba con cuenta, correo, IA,
+          jugadores, plantilla, mercado o error.
+        </p>
+
+      </div>
+    `;
   }
 
-  function openGuide() {
+  function openGuide(){
     $("fsmHelpOverlay")
       ?.classList.add(
         "open"
       );
   }
 
-  function closeGuide() {
+  function closeGuide(){
     $("fsmHelpOverlay")
       ?.classList.remove(
         "open"
       );
   }
 
-  /* =========================================================
-     BOTÓN GUÍA
-     ========================================================= */
-
   function addGuideButton() {
-    if ($("fsmGuideButton")) {
-      return;
-    }
+    if($("fsmGuideButton"))return;
 
-    const actions =
+    const actions=
       document.querySelector(
         ".top-actions"
       );
 
-    if (!actions) {
-      return;
-    }
+    if(!actions)return;
 
-    const button =
+    const b=
       document.createElement(
         "button"
       );
 
-    button.id =
+    b.id=
       "fsmGuideButton";
 
-    button.className =
-      "fsm-guide-button";
+    b.className=
+      "fsm-sup-btn";
 
-    button.type =
+    b.type=
       "button";
 
-    button.textContent =
+    b.textContent=
       "📘 Guía";
 
-    button.onclick =
+    b.onclick=
       openGuide;
 
     actions.prepend(
-      button
+      b
     );
   }
 
-  /* =========================================================
-     CHAT
-     ========================================================= */
-
   function createChat() {
-    if ($("fsmSupportLauncher")) {
-      return;
-    }
+    if(
+      $("fsmSupportLauncher")
+    )return;
 
-    const root =
+    const root=
       document.createElement(
         "div"
       );
 
-    root.id =
+    root.id=
       "fsmSupportLauncher";
 
-    root.className =
+    root.className=
       "fsm-support-launcher";
 
-    root.innerHTML = `
+    root.innerHTML=`
       <div
         id="fsmSupportWindow"
         class="fsm-support-window"
@@ -1579,7 +752,7 @@
             </div>
 
             <div class="fsm-support-subtitle">
-              Ayuda, preguntas e incidencias
+              Ayuda y seguimiento de incidencias
             </div>
 
           </div>
@@ -1587,6 +760,7 @@
           <button
             id="fsmSupportClose"
             class="fsm-support-close"
+            type="button"
           >
             ✕
           </button>
@@ -1598,41 +772,30 @@
           class="fsm-support-messages"
         >
 
-          <div
-            class="fsm-support-message bot"
-          >
-            👋 Hola. Soy el soporte de FSM.
-            Puedes preguntarme algo o abrir
-            una incidencia.
+          <div class="fsm-support-message bot">
+            👋 Hola. Puedes hacerme una pregunta o
+            enviar una incidencia.
           </div>
 
         </div>
 
         <div class="fsm-support-quick">
 
-          <button data-topic="cuenta">
-            👤 Cuenta
-          </button>
-
-          <button data-topic="ia">
-            🤖 IA
-          </button>
-
-          <button data-topic="jugadores">
-            👥 Jugadores
-          </button>
-
-          <button data-topic="plantilla">
-            📋 Plantilla
-          </button>
-
-          <button data-topic="mercado">
-            📈 Mercado
-          </button>
-
-          <button data-topic="error">
-            🛠️ Error
-          </button>
+          ${Object.entries(
+            TOPICS
+          )
+            .slice(0,6)
+            .map(
+              ([key,v])=>
+                `
+                  <button
+                    data-topic="${key}"
+                  >
+                    ${v[0]}
+                  </button>
+                `
+            )
+            .join("")}
 
         </div>
 
@@ -1642,7 +805,7 @@
             style="
               display:grid;
               grid-template-columns:1fr 1fr;
-              gap:7px;
+              gap:7px
             "
           >
 
@@ -1650,6 +813,7 @@
               id="fsmSupportCategory"
               class="fsm-support-select"
             >
+
               <option value="general">
                 Categoría: General
               </option>
@@ -1681,12 +845,14 @@
               <option value="security">
                 Seguridad
               </option>
+
             </select>
 
             <select
               id="fsmSupportPriority"
               class="fsm-support-select"
             >
+
               <option value="normal">
                 Prioridad: Normal
               </option>
@@ -1702,6 +868,7 @@
               <option value="urgent">
                 🚨 Urgente
               </option>
+
             </select>
 
           </div>
@@ -1718,6 +885,7 @@
             <button
               id="fsmSupportSend"
               class="fsm-support-send"
+              type="button"
             >
               Enviar
             </button>
@@ -1730,7 +898,7 @@
           id="fsmSupportStatus"
           class="fsm-support-status"
         >
-          Preparado.
+          Soporte listo.
         </div>
 
       </div>
@@ -1738,6 +906,8 @@
       <button
         id="fsmSupportOpen"
         class="fsm-support-button"
+        type="button"
+        aria-label="Abrir soporte"
       >
         💬
       </button>
@@ -1747,251 +917,400 @@
       root
     );
 
-    $("fsmSupportOpen").onclick =
-      () => {
-
+    $("fsmSupportOpen").onclick=
+      async()=>{
         $("fsmSupportWindow")
           ?.classList.add(
             "open"
           );
 
+        await loadOpenTicket();
       };
 
-    $("fsmSupportClose").onclick =
-      () => {
-
+    $("fsmSupportClose").onclick=
+      ()=>
         $("fsmSupportWindow")
           ?.classList.remove(
             "open"
           );
 
-      };
-
-    $("fsmSupportSend").onclick =
+    $("fsmSupportSend").onclick=
       submitSupport;
 
-    $("fsmSupportInput").addEventListener(
-      "keydown",
-      (event) => {
-
-        if (
-          event.key === "Enter" &&
-          !event.shiftKey
-        ) {
-
-          event.preventDefault();
-
-          submitSupport();
-
+    $("fsmSupportInput")
+      .addEventListener(
+        "keydown",
+        e=>{
+          if(
+            e.key==="Enter" &&
+            !e.shiftKey
+          ){
+            e.preventDefault();
+            submitSupport();
+          }
         }
-
-      }
-    );
+      );
 
     root
       .querySelectorAll(
         "[data-topic]"
       )
       .forEach(
-        (button) => {
+        b=>{
+          b.onclick=
+            ()=>{
+              const topic=
+                TOPICS[
+                  b.dataset.topic
+                ];
 
-          button.onclick =
-            () => {
+              if(!topic)return;
 
-              answerFAQ(
-                button.dataset.topic
+              $("fsmSupportCategory")
+                .value=
+                  topic[1];
+
+              addMessage(
+                topic[0],
+                "user"
               );
 
+              addMessage(
+                topic[2],
+                "bot"
+              );
             };
-
         }
       );
   }
 
-  /* =========================================================
-     FAQ DEL CHAT
-     ========================================================= */
+  async function getUser() {
+    if(!sb){
+      throw new Error(
+        "SUPABASE_NOT_AVAILABLE"
+      );
+    }
 
-  function answerFAQ(
-    topic
+    const {
+      data,
+      error
+    }=
+      await sb.auth.getSession();
+
+    if(error){
+      throw error;
+    }
+
+    if(
+      !data?.session?.user
+    ){
+      throw new Error(
+        "NO_SESSION"
+      );
+    }
+
+    return data.session.user;
+  }
+
+  async function findOpenTicket(
+    userId,
+    category
   ) {
-    let best =
-      null;
+    const {
+      data,
+      error
+    }=
+      await sb
+        .from(
+          "support_tickets"
+        )
+        .select(
+          "id,subject,status,priority,category,created_at,updated_at"
+        )
+        .eq(
+          "user_id",
+          userId
+        )
+        .eq(
+          "category",
+          category
+        )
+        .in(
+          "status",
+          [
+            "open",
+            "pending"
+          ]
+        )
+        .order(
+          "updated_at",
+          {
+            ascending:
+              false
+          }
+        )
+        .limit(
+          1
+        )
+        .maybeSingle();
 
-    for (
-      const item
-      of FAQ
-    ) {
+    if(error){
+      throw error;
+    }
 
-      const found =
-        item.keys.some(
-          (key) =>
-            key
-              .toLowerCase()
-              .includes(
-                topic
-              )
-        ) ||
-        item.title
-          .toLowerCase()
-          .includes(
-            topic
+    return data || null;
+  }
+
+  async function loadOpenTicket() {
+    try {
+
+      const user=
+        await getUser();
+
+      const category=
+        $("fsmSupportCategory")
+          ?.value ||
+        "general";
+
+      const ticket=
+        await findOpenTicket(
+          user.id,
+          category
+        );
+
+      currentTicketId=
+        ticket?.id ||
+        null;
+
+      if(!ticket){
+        $("fsmSupportStatus")
+          .textContent=
+            "No hay una incidencia abierta en esta categoría.";
+
+        return;
+      }
+
+      const {
+        data,
+        error
+      }=
+        await sb
+          .from(
+            "support_messages"
+          )
+          .select(
+            "body,sender_type,created_at"
+          )
+          .eq(
+            "ticket_id",
+            ticket.id
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                true
+            }
           );
 
-      if (found) {
-        best = item;
-        break;
+      if(error){
+        throw error;
+      }
+
+      const box=
+        $("fsmSupportMessages");
+
+      box.innerHTML=
+        "";
+
+      addMessage(
+        `🎫 Incidencia activa: ${ticket.id.slice(0,8)}`,
+        "system"
+      );
+
+      (
+        data ||
+        []
+      ).forEach(
+        m=>{
+          addMessage(
+            m.body,
+            m.sender_type ===
+              "user"
+              ? "user"
+              : "bot"
+          );
+        }
+      );
+
+      $("fsmSupportStatus")
+        .textContent=
+          "Los siguientes mensajes se añadirán a esta misma incidencia.";
+
+    } catch(error) {
+
+      if(
+        error?.message ===
+        "NO_SESSION"
+      ){
+        $("fsmSupportStatus")
+          .textContent=
+            "Inicia sesión para usar el soporte.";
       }
 
     }
-
-    if (!best) {
-      best = {
-        title:
-          "Ayuda",
-        answer:
-          "Abre la 📘 Guía para consultar todas las instrucciones de FSM."
-      };
-    }
-
-    addChatMessage(
-      best.title,
-      "user"
-    );
-
-    addChatMessage(
-      best.answer,
-      "bot"
-    );
   }
 
-  /* =========================================================
-     ENVÍO DE SOPORTE
-     ========================================================= */
-
   async function submitSupport() {
-    const input =
+
+    if(sending){
+      return;
+    }
+
+    const input=
       $("fsmSupportInput");
 
-    const send =
+    const send=
       $("fsmSupportSend");
 
-    const status =
+    const status=
       $("fsmSupportStatus");
 
-    const text =
+    const text=
       input.value.trim();
 
-    if (!text) {
-      status.textContent =
+    if(!text){
+      status.textContent=
         "Escribe primero tu problema.";
 
       return;
     }
 
-    addChatMessage(
-      text,
-      "user"
-    );
-
-    input.value =
-      "";
-
-    send.disabled =
+    sending=
       true;
 
-    status.textContent =
-      "Comprobando sesión...";
+    send.disabled=
+      true;
 
     try {
 
-      if (!supabaseClient) {
-        throw new Error(
-          "SUPABASE_NOT_AVAILABLE"
-        );
-      }
+      const user=
+        await getUser();
 
-      const {
-        data: {
-          session
-        }
-      } =
-        await supabaseClient.auth.getSession();
-
-      if (
-        !session?.user
-      ) {
-
-        throw new Error(
-          "NO_SESSION"
-        );
-
-      }
-
-      const category =
+      const category=
         $("fsmSupportCategory")
           ?.value ||
         "general";
 
-      const priority =
+      const priority=
         $("fsmSupportPriority")
           ?.value ||
         "normal";
 
-      const subject =
-        `[${category}] ${text.slice(
-          0,
-          90
-        )}`;
+      addMessage(
+        text,
+        "user"
+      );
 
-      status.textContent =
-        "Creando incidencia...";
+      input.value=
+        "";
 
-      const ticketResult =
-        await supabaseClient
-          .from(
-            "support_tickets"
-          )
-          .insert({
-            user_id:
-              session.user.id,
+      status.textContent=
+        "Buscando incidencia abierta...";
 
-            subject:
-              subject,
+      let ticket=
+        await findOpenTicket(
+          user.id,
+          category
+        );
 
-            status:
-              "open"
-          })
-          .select(
-            "id"
-          )
-          .single();
+      let createdNew=
+        false;
 
-      if (
-        ticketResult.error
-      ) {
-        throw ticketResult.error;
+      if(!ticket){
+
+        status.textContent=
+          "Creando incidencia...";
+
+        const inserted=
+          await sb
+            .from(
+              "support_tickets"
+            )
+            .insert({
+              user_id:
+                user.id,
+
+              subject:
+                `[${category}] ${text.slice(0,90)}`,
+
+              status:
+                "open",
+
+              priority,
+
+              category
+            })
+            .select(
+              "id,subject,status,priority,category"
+            )
+            .single();
+
+        if(
+          inserted.error
+        ){
+
+          if(
+            inserted.error.code===
+              "23505"
+          ){
+
+            ticket=
+              await findOpenTicket(
+                user.id,
+                category
+              );
+
+          }else{
+
+            throw inserted.error;
+
+          }
+
+        }else{
+
+          ticket=
+            inserted.data;
+
+          createdNew=
+            true;
+
+        }
       }
 
-      currentTicketId =
-        ticketResult
-          .data
-          .id;
+      if(!ticket?.id){
+        throw new Error(
+          "TICKET_NOT_CREATED"
+        );
+      }
 
-      status.textContent =
+      currentTicketId=
+        ticket.id;
+
+      status.textContent=
         "Guardando mensaje...";
 
-      const messageResult =
-        await supabaseClient
+      const message=
+        await sb
           .from(
             "support_messages"
           )
           .insert({
             ticket_id:
-              currentTicketId,
+              ticket.id,
 
             user_id:
-              session.user.id,
+              user.id,
 
             body:
               text,
@@ -2000,156 +1319,123 @@
               "user"
           });
 
-      if (
-        messageResult.error
-      ) {
-        throw messageResult.error;
+      if(
+        message.error
+      ){
+        throw message.error;
       }
 
-      status.textContent =
-        "✅ Incidencia enviada.";
+      const update=
+        await sb
+          .from(
+            "support_tickets"
+          )
+          .update({
+            status:
+              "open",
 
-      addChatMessage(
-        `✅ Incidencia creada correctamente.\nID: ${currentTicketId}`,
+            priority,
+
+            category,
+
+            updated_at:
+              new Date()
+                .toISOString()
+          })
+          .eq(
+            "id",
+            ticket.id
+          )
+          .eq(
+            "user_id",
+            user.id
+          );
+
+      if(
+        update.error
+      ){
+        throw update.error;
+      }
+
+      status.textContent=
+        createdNew
+          ? "✅ Incidencia creada."
+          : "✅ Mensaje añadido.";
+
+      addMessage(
+        createdNew
+          ? `✅ Incidencia creada.\nID: ${ticket.id}`
+          : "✅ Tu mensaje se ha añadido a la incidencia abierta.",
         "bot"
       );
 
-      addChatMessage(
-        "Puedes guardar ese ID si necesitas consultar esta incidencia con soporte.",
-        "system"
-      );
-
-    } catch (
-      error
-    ) {
+    } catch(error) {
 
       console.error(
         "FSM SUPPORT:",
         error
       );
 
-      if (
-        error.message ===
+      if(
+        error?.message ===
         "NO_SESSION"
-      ) {
+      ){
 
-        addChatMessage(
+        addMessage(
           "🔐 Necesitas iniciar sesión para enviar una incidencia.",
           "bot"
         );
 
-        status.textContent =
+        status.textContent=
           "Inicia sesión primero.";
 
-      } else if (
-        error.message ===
+      }else if(
+        error?.message ===
         "SUPABASE_NOT_AVAILABLE"
-      ) {
+      ){
 
-        addChatMessage(
+        addMessage(
           "❌ No se pudo conectar con Supabase.",
           "bot"
         );
 
-        status.textContent =
+        status.textContent=
           "Supabase no disponible.";
 
-      } else {
+      }else{
 
-        addChatMessage(
-          "❌ No se pudo guardar la incidencia. Prueba otra vez.",
+        addMessage(
+          "❌ No se pudo guardar el mensaje. Inténtalo de nuevo.",
           "bot"
         );
 
-        status.textContent =
+        status.textContent=
           "Error al guardar.";
 
       }
 
-    } finally {
+    }finally{
 
-      send.disabled =
+      sending=
         false;
 
+      send.disabled=
+        false;
     }
   }
-
-  /* =========================================================
-     MENSAJES
-     ========================================================= */
-
-  function addChatMessage(
-    text,
-    type
-  ) {
-    const box =
-      $("fsmSupportMessages");
-
-    if (!box) {
-      return;
-    }
-
-    const div =
-      document.createElement(
-        "div"
-      );
-
-    div.className =
-      `fsm-support-message ${type}`;
-
-    div.textContent =
-      text;
-
-    box.appendChild(
-      div
-    );
-
-    box.scrollTop =
-      box.scrollHeight;
-  }
-
-  /* =========================================================
-     SEGURIDAD
-     ========================================================= */
-
-  function escapeHtml(
-    value
-  ) {
-    return String(
-      value ?? ""
-    )
-      .replaceAll(
-        "&",
-        "&amp;"
-      )
-      .replaceAll(
-        "<",
-        "&lt;"
-      )
-      .replaceAll(
-        ">",
-        "&gt;"
-      )
-      .replaceAll(
-        '"',
-        "&quot;"
-      )
-      .replaceAll(
-        "'",
-        "&#039;"
-      );
-  }
-
-  /* =========================================================
-     INICIO
-     ========================================================= */
 
   function init() {
 
+    if(!sb){
+      console.warn(
+        "FSM Support: Supabase no disponible."
+      );
+
+      return;
+    }
+
     addStyles();
-
     createGuide();
-
     createChat();
 
     setTimeout(
@@ -2164,13 +1450,13 @@
 
     document.addEventListener(
       "keydown",
-      (event) => {
+      e=>{
 
-        const tag =
+        const tag=
           document.activeElement
             ?.tagName;
 
-        const typing =
+        const typing=
           [
             "INPUT",
             "TEXTAREA",
@@ -2179,16 +1465,17 @@
             tag
           );
 
-        if (
-          event.key === "?" &&
+        if(
+          e.key==="?" &&
           !typing
-        ) {
+        ){
           openGuide();
         }
 
-        if (
-          event.key === "Escape"
-        ) {
+        if(
+          e.key==="Escape"
+        ){
+
           closeGuide();
 
           $("fsmSupportWindow")
@@ -2196,22 +1483,21 @@
               "open"
             );
         }
-
       }
     );
   }
 
-  if (
-    document.readyState ===
-    "loading"
-  ) {
+  if(
+    document.readyState===
+      "loading"
+  ){
 
     document.addEventListener(
       "DOMContentLoaded",
       init
     );
 
-  } else {
+  }else{
 
     init();
 
