@@ -1,14 +1,13 @@
 /*
   FC MOBILE FSM — players.js
-  CATÁLOGO GRANDE + SUPABASE + REFERENCIA FC26
+  CATÁLOGO GRANDE CON CARGA RÁPIDA
 
-  IMPORTANTE:
-  - public.players = catálogo FSM principal.
-  - Si Supabase tiene suficientes jugadores, se usa Supabase.
-  - Si Supabase está vacío o tiene pocos jugadores, se carga también
-    una base pública de referencia de EA Sports FC 26.
-  - Esos registros de referencia NO son cartas oficiales de FC Mobile.
-  - Sus precios se dejan a 0 para no fingir precios del mercado FC Mobile.
+  Estrategia:
+  1) Arranque inmediato con Supabase/FALLBACK.
+  2) El catálogo externo FC26 NO bloquea la primera pantalla.
+  3) Se descarga en segundo plano cuando el navegador está libre.
+  4) No se guarda el catálogo completo en localStorage.
+  5) Cuando llega el catálogo grande, se actualiza la web sin recargar.
 */
 
 (() => {
@@ -20,315 +19,48 @@
   const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6UTaFORK";
 
-  /*
-    Dataset público de referencia FC26.
-  */
   const REFERENCE_CSV_URL =
     "https://raw.githubusercontent.com/preetiravikiran/FIFA2026/main/fifa26_player_data.csv";
 
-  const CACHE_KEY =
-    "fsm_players_catalog_v3";
-
-  const CACHE_META_KEY =
-    "fsm_players_catalog_meta_v3";
-
-  const CACHE_TTL =
-    30 * 60 * 1000;
-
-  const SUPABASE_MIN_COUNT = 100;
-
   const PAGE_SIZE = 1000;
+  const REFERENCE_DELAY = 1800;
 
   const FALLBACK = [
-    {
-      id: 1,
-      name: "Kylian Mbappé",
-      club: "Real Madrid",
-      league: "La Liga",
-      country: "France",
-      pos: "ST",
-      ovr: 122,
-      price: 650000000,
-      pace: 99,
-      shoot: 97,
-      pass: 85,
-      dribble: 98,
-      def: 45,
-      phys: 90,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 2,
-      name: "Erling Haaland",
-      club: "Manchester City",
-      league: "Premier League",
-      country: "Norway",
-      pos: "ST",
-      ovr: 121,
-      price: 620000000,
-      pace: 98,
-      shoot: 99,
-      pass: 75,
-      dribble: 90,
-      def: 50,
-      phys: 97,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 3,
-      name: "Vinícius Jr.",
-      club: "Real Madrid",
-      league: "La Liga",
-      country: "Brazil",
-      pos: "LW",
-      ovr: 122,
-      price: 600000000,
-      pace: 99,
-      shoot: 96,
-      pass: 88,
-      dribble: 98,
-      def: 40,
-      phys: 85,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 4,
-      name: "Rodri",
-      club: "Manchester City",
-      league: "Premier League",
-      country: "Spain",
-      pos: "CDM",
-      ovr: 121,
-      price: 550000000,
-      pace: 85,
-      shoot: 80,
-      pass: 92,
-      dribble: 86,
-      def: 96,
-      phys: 92,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 5,
-      name: "Mohamed Salah",
-      club: "Liverpool",
-      league: "Premier League",
-      country: "Egypt",
-      pos: "RW",
-      ovr: 120,
-      price: 520000000,
-      pace: 97,
-      shoot: 96,
-      pass: 88,
-      dribble: 97,
-      def: 50,
-      phys: 85,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 6,
-      name: "Jude Bellingham",
-      club: "Real Madrid",
-      league: "La Liga",
-      country: "England",
-      pos: "CAM",
-      ovr: 121,
-      price: 410000000,
-      pace: 89,
-      shoot: 90,
-      pass: 94,
-      dribble: 95,
-      def: 84,
-      phys: 91,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 7,
-      name: "Ousmane Dembélé",
-      club: "PSG",
-      league: "Ligue 1",
-      country: "France",
-      pos: "RW",
-      ovr: 120,
-      price: 340000000,
-      pace: 98,
-      shoot: 89,
-      pass: 91,
-      dribble: 98,
-      def: 38,
-      phys: 78,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 8,
-      name: "Cole Palmer",
-      club: "Chelsea",
-      league: "Premier League",
-      country: "England",
-      pos: "CAM",
-      ovr: 118,
-      price: 180000000,
-      pace: 86,
-      shoot: 91,
-      pass: 96,
-      dribble: 95,
-      def: 52,
-      phys: 74,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 9,
-      name: "Virgil van Dijk",
-      club: "Liverpool",
-      league: "Premier League",
-      country: "Netherlands",
-      pos: "CB",
-      ovr: 117,
-      price: 150000000,
-      pace: 88,
-      shoot: 53,
-      pass: 84,
-      dribble: 72,
-      def: 98,
-      phys: 96,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 10,
-      name: "Nuno Mendes",
-      club: "PSG",
-      league: "Ligue 1",
-      country: "Portugal",
-      pos: "LB",
-      ovr: 120,
-      price: 210000000,
-      pace: 97,
-      shoot: 70,
-      pass: 88,
-      dribble: 91,
-      def: 86,
-      phys: 84,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 11,
-      name: "Trent Alexander-Arnold",
-      club: "Real Madrid",
-      league: "La Liga",
-      country: "England",
-      pos: "RB",
-      ovr: 119,
-      price: 185000000,
-      pace: 91,
-      shoot: 72,
-      pass: 99,
-      dribble: 88,
-      def: 78,
-      phys: 80,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 12,
-      name: "Alisson",
-      club: "Liverpool",
-      league: "Premier League",
-      country: "Brazil",
-      pos: "GK",
-      ovr: 116,
-      price: 120000000,
-      pace: 70,
-      shoot: 30,
-      pass: 90,
-      dribble: 55,
-      def: 95,
-      phys: 84,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 13,
-      name: "Harry Kane",
-      club: "Bayern München",
-      league: "Bundesliga",
-      country: "England",
-      pos: "ST",
-      ovr: 119,
-      price: 240000000,
-      pace: 87,
-      shoot: 98,
-      pass: 91,
-      dribble: 88,
-      def: 45,
-      phys: 91,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 14,
-      name: "Kevin De Bruyne",
-      club: "Napoli",
-      league: "Serie A",
-      country: "Belgium",
-      pos: "CM",
-      ovr: 118,
-      price: 190000000,
-      pace: 79,
-      shoot: 88,
-      pass: 99,
-      dribble: 90,
-      def: 55,
-      phys: 78,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 15,
-      name: "Achraf Hakimi",
-      club: "PSG",
-      league: "Ligue 1",
-      country: "Morocco",
-      pos: "RB",
-      ovr: 118,
-      price: 230000000,
-      pace: 98,
-      shoot: 78,
-      pass: 90,
-      dribble: 91,
-      def: 84,
-      phys: 87,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    },
-    {
-      id: 16,
-      name: "Thibaut Courtois",
-      club: "Real Madrid",
-      league: "La Liga",
-      country: "Belgium",
-      pos: "GK",
-      ovr: 117,
-      price: 170000000,
-      pace: 65,
-      shoot: 25,
-      pass: 82,
-      dribble: 40,
-      def: 98,
-      phys: 90,
-      program: "FSM Demo",
-      source: "fsm_demo"
-    }
-  ];
+    ["Kylian Mbappé","Real Madrid","La Liga","France","ST",122,99,97,85,98,45,90],
+    ["Erling Haaland","Manchester City","Premier League","Norway","ST",121,98,99,75,90,50,97],
+    ["Vinícius Jr.","Real Madrid","La Liga","Brazil","LW",122,99,96,88,98,40,85],
+    ["Rodri","Manchester City","Premier League","Spain","CDM",121,85,80,92,86,96,92],
+    ["Mohamed Salah","Liverpool","Premier League","Egypt","RW",120,97,96,88,97,50,85],
+    ["Jude Bellingham","Real Madrid","La Liga","England","CAM",121,89,90,94,95,84,91],
+    ["Ousmane Dembélé","PSG","Ligue 1","France","RW",120,98,89,91,98,38,78],
+    ["Cole Palmer","Chelsea","Premier League","England","CAM",118,86,91,96,95,52,74],
+    ["Virgil van Dijk","Liverpool","Premier League","Netherlands","CB",117,88,53,84,72,98,96],
+    ["Nuno Mendes","PSG","Ligue 1","Portugal","LB",120,97,70,88,91,86,84],
+    ["Trent Alexander-Arnold","Real Madrid","La Liga","England","RB",119,91,72,99,88,78,80],
+    ["Alisson","Liverpool","Premier League","Brazil","GK",116,70,30,90,55,95,84],
+    ["Harry Kane","Bayern München","Bundesliga","England","ST",119,87,98,91,88,45,91],
+    ["Kevin De Bruyne","Napoli","Serie A","Belgium","CM",118,79,88,99,90,55,78],
+    ["Achraf Hakimi","PSG","Ligue 1","Morocco","RB",118,98,78,90,91,84,87],
+    ["Thibaut Courtois","Real Madrid","La Liga","Belgium","GK",117,65,25,82,40,98,90]
+  ].map((p, i) => ({
+    id: i + 1,
+    name: p[0],
+    club: p[1],
+    league: p[2],
+    country: p[3],
+    pos: p[4],
+    ovr: p[5],
+    price: 0,
+    pace: p[6],
+    shoot: p[7],
+    pass: p[8],
+    dribble: p[9],
+    def: p[10],
+    phys: p[11],
+    program: "FSM Demo",
+    source: "fsm_demo",
+    source_type: "fsm"
+  }));
 
   function createClient() {
     if (!window.supabase?.createClient) {
@@ -343,30 +75,27 @@
 
   const client = createClient();
 
-  function number(value, fallback = 0) {
-    const n = Number(value);
-
-    return Number.isFinite(n)
-      ? n
-      : fallback;
+  function n(value, fallback = 0) {
+    const x = Number(value);
+    return Number.isFinite(x) ? x : fallback;
   }
 
-  function normalizeSupabase(row) {
+  function normalize(row) {
     return {
-      id: number(row.id),
+      id: n(row.id),
       name: row.name || "",
       club: row.club || "",
       league: row.league || "",
       country: row.country || "",
       pos: row.pos || "",
-      ovr: number(row.ovr),
-      price: number(row.price),
-      pace: number(row.pace),
-      shoot: number(row.shoot),
-      pass: number(row.pass),
-      dribble: number(row.dribble),
-      def: number(row.def),
-      phys: number(row.phys),
+      ovr: n(row.ovr),
+      price: n(row.price),
+      pace: n(row.pace),
+      shoot: n(row.shoot),
+      pass: n(row.pass),
+      dribble: n(row.dribble),
+      def: n(row.def),
+      phys: n(row.phys),
       program: row.program || "",
       auctionable: row.auctionable ?? null,
       source: row.source || "supabase",
@@ -375,297 +104,40 @@
     };
   }
 
-  function parseCSVLine(line) {
-    const out = [];
-    let current = "";
-    let quoted = false;
+  function publish(players, source) {
+    window.FSM_PLAYERS =
+      Array.isArray(players)
+        ? players
+        : FALLBACK.slice();
 
-    for (
-      let i = 0;
-      i < line.length;
-      i++
-    ) {
-      const char =
-        line[i];
+    window.FSM_PLAYERS_SOURCE =
+      source || "fallback";
 
-      if (char === '"') {
-        if (
-          quoted &&
-          line[i + 1] === '"'
-        ) {
-          current += '"';
-          i++;
-        } else {
-          quoted = !quoted;
+    window.FSM_PLAYERS_META = {
+      total:
+        window.FSM_PLAYERS.length,
+      source:
+        window.FSM_PLAYERS_SOURCE
+    };
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "fsm:players-ready",
+        {
+          detail: {
+            players:
+              window.FSM_PLAYERS,
+            source:
+              window.FSM_PLAYERS_SOURCE,
+            total:
+              window.FSM_PLAYERS.length
+          }
         }
-
-        continue;
-      }
-
-      if (
-        char === "," &&
-        !quoted
-      ) {
-        out.push(current);
-        current = "";
-        continue;
-      }
-
-      current += char;
-    }
-
-    out.push(current);
-
-    return out;
-  }
-
-  function parseCSV(text) {
-    const lines =
-      text
-        .replace(/^\uFEFF/, "")
-        .split(/\r?\n/)
-        .filter(Boolean);
-
-    if (lines.length < 2) {
-      return [];
-    }
-
-    const headers =
-      parseCSVLine(lines[0]);
-
-    const index = {};
-
-    headers.forEach(
-      (header, i) => {
-        index[header] = i;
-      }
-    );
-
-    const players = [];
-
-    for (
-      let rowIndex = 1;
-      rowIndex < lines.length;
-      rowIndex++
-    ) {
-      const values =
-        parseCSVLine(
-          lines[rowIndex]
-        );
-
-      const get = key =>
-        values[
-          index[key]
-        ] ?? "";
-
-      const positions =
-        String(
-          get("player_positions")
-        )
-          .split(",")
-          .map(
-            p =>
-              p.trim()
-          )
-          .filter(Boolean);
-
-      const primary =
-        positions[0] ||
-        "CM";
-
-      const ovr =
-        number(
-          get("overall")
-        );
-
-      const pace =
-        number(
-          get("pace")
-        );
-
-      const shoot =
-        number(
-          get("shooting")
-        );
-
-      const pass =
-        number(
-          get("passing")
-        );
-
-      const dribble =
-        number(
-          get("dribbling")
-        );
-
-      const def =
-        number(
-          get("defending")
-        );
-
-      const phys =
-        number(
-          get("physic")
-        );
-
-      if (
-        !get("short_name") &&
-        !get("long_name")
-      ) {
-        continue;
-      }
-
-      const id =
-        -1000000 -
-        rowIndex;
-
-      players.push({
-        id,
-
-        name:
-          get("short_name") ||
-          get("long_name"),
-
-        full_name:
-          get("long_name"),
-
-        club:
-          get("club_name"),
-
-        league:
-          get("league_name"),
-
-        country:
-          get("nationality_name"),
-
-        pos:
-          primary,
-
-        positions,
-
-        ovr,
-
-        price:
-          0,
-
-        pace,
-
-        shoot,
-
-        pass,
-
-        dribble,
-
-        def,
-
-        phys,
-
-        program:
-          "FC26 Reference",
-
-        auctionable:
-          null,
-
-        source:
-          "fc26_reference_csv",
-
-        source_type:
-          "reference",
-
-        preferred_foot:
-          get("preferred_foot"),
-
-        weak_foot:
-          number(
-            get("weak_foot")
-          ),
-
-        skill_moves:
-          number(
-            get("skill_moves")
-          ),
-
-        potential:
-          number(
-            get("potential")
-          )
-      });
-    }
-
-    return players;
-  }
-
-  function cacheGet() {
-    try {
-      const savedAt =
-        number(
-          localStorage.getItem(
-            CACHE_META_KEY
-          )
-        );
-
-      if (
-        !savedAt ||
-        Date.now() -
-          savedAt >
-          CACHE_TTL
-      ) {
-        return null;
-      }
-
-      const raw =
-        localStorage.getItem(
-          CACHE_KEY
-        );
-
-      if (!raw) {
-        return null;
-      }
-
-      const parsed =
-        JSON.parse(raw);
-
-      return Array.isArray(
-        parsed
       )
-        ? parsed
-        : null;
-
-    } catch {
-      return null;
-    }
+    );
   }
 
-  function cacheSet(
-    players
-  ) {
-    try {
-      const safe =
-        players.slice(
-          0,
-          20000
-        );
-
-      localStorage.setItem(
-        CACHE_KEY,
-        JSON.stringify(
-          safe
-        )
-      );
-
-      localStorage.setItem(
-        CACHE_META_KEY,
-        String(
-          Date.now()
-        )
-      );
-
-    } catch {
-      /* cache opcional */
-    }
-  }
-
-  async function loadSupabasePlayers() {
+  async function loadSupabase() {
     if (!client) {
       return [];
     }
@@ -678,15 +150,7 @@
         ;
         from += PAGE_SIZE
       ) {
-        const to =
-          from +
-          PAGE_SIZE -
-          1;
-
-        const {
-          data,
-          error
-        } =
+        const { data, error } =
           await client
             .from("players")
             .select(
@@ -718,34 +182,29 @@
             .order(
               "id",
               {
-                ascending:
-                  true
+                ascending: true
               }
             )
             .range(
               from,
-              to
+              from + PAGE_SIZE - 1
             );
 
         if (error) {
           console.warn(
-            "FSM Supabase:",
+            "FSM players Supabase:",
             error
           );
-
           return [];
         }
 
-        if (
-          !data ||
-          !data.length
-        ) {
+        if (!data?.length) {
           break;
         }
 
         all.push(
           ...data.map(
-            normalizeSupabase
+            normalize
           )
         );
 
@@ -755,58 +214,325 @@
         ) {
           break;
         }
+
+        await new Promise(
+          (resolve) =>
+            setTimeout(
+              resolve,
+              0
+            )
+        );
       }
 
       return all;
-
     } catch (error) {
       console.warn(
-        "FSM Supabase catalog error:",
+        "FSM players load:",
         error
       );
-
       return [];
     }
   }
 
-  async function loadReferenceCSV() {
+  function parseCSVLine(line) {
+    const result = [];
+    let value = "";
+    let quoted = false;
+
+    for (
+      let i = 0;
+      i < line.length;
+      i++
+    ) {
+      const c = line[i];
+
+      if (c === '"') {
+        if (
+          quoted &&
+          line[i + 1] === '"'
+        ) {
+          value += '"';
+          i++;
+        } else {
+          quoted = !quoted;
+        }
+        continue;
+      }
+
+      if (
+        c === "," &&
+        !quoted
+      ) {
+        result.push(value);
+        value = "";
+      } else {
+        value += c;
+      }
+    }
+
+    result.push(value);
+    return result;
+  }
+
+  function csvValue(
+    values,
+    index,
+    key
+  ) {
+    return (
+      values[
+        index[key]
+      ] ?? ""
+    );
+  }
+
+  async function parseReferenceCSV(
+    text
+  ) {
+    const lines =
+      text
+        .replace(/^\uFEFF/, "")
+        .split(/\r?\n/)
+        .filter(Boolean);
+
+    if (lines.length < 2) {
+      return [];
+    }
+
+    const headers =
+      parseCSVLine(
+        lines[0]
+      );
+
+    const index = {};
+
+    headers.forEach(
+      (header, i) => {
+        index[header] = i;
+      }
+    );
+
+    const output = [];
+
+    const block = 300;
+
+    for (
+      let start = 1;
+      start < lines.length;
+      start += block
+    ) {
+      const end =
+        Math.min(
+          start + block,
+          lines.length
+        );
+
+      for (
+        let row = start;
+        row < end;
+        row++
+      ) {
+        const values =
+          parseCSVLine(
+            lines[row]
+          );
+
+        const name =
+          csvValue(
+            values,
+            index,
+            "short_name"
+          ) ||
+          csvValue(
+            values,
+            index,
+            "long_name"
+          );
+
+        if (!name) {
+          continue;
+        }
+
+        const positions =
+          String(
+            csvValue(
+              values,
+              index,
+              "player_positions"
+            )
+          )
+            .split(",")
+            .map(
+              p =>
+                p.trim()
+            )
+            .filter(Boolean);
+
+        output.push({
+          id:
+            -1000000 -
+            row,
+
+          name,
+
+          full_name:
+            csvValue(
+              values,
+              index,
+              "long_name"
+            ),
+
+          club:
+            csvValue(
+              values,
+              index,
+              "club_name"
+            ),
+
+          league:
+            csvValue(
+              values,
+              index,
+              "league_name"
+            ),
+
+          country:
+            csvValue(
+              values,
+              index,
+              "nationality_name"
+            ),
+
+          pos:
+            positions[0] ||
+            "CM",
+
+          positions,
+
+          ovr:
+            n(
+              csvValue(
+                values,
+                index,
+                "overall"
+              )
+            ),
+
+          price: 0,
+
+          pace:
+            n(
+              csvValue(
+                values,
+                index,
+                "pace"
+              )
+            ),
+
+          shoot:
+            n(
+              csvValue(
+                values,
+                index,
+                "shooting"
+              )
+            ),
+
+          pass:
+            n(
+              csvValue(
+                values,
+                index,
+                "passing"
+              )
+            ),
+
+          dribble:
+            n(
+              csvValue(
+                values,
+                index,
+                "dribbling"
+              )
+            ),
+
+          def:
+            n(
+              csvValue(
+                values,
+                index,
+                "defending"
+              )
+            ),
+
+          phys:
+            n(
+              csvValue(
+                values,
+                index,
+                "physic"
+              )
+            ),
+
+          program:
+            "FC26 Reference",
+
+          auctionable:
+            null,
+
+          source:
+            "fc26_reference_csv",
+
+          source_type:
+            "reference"
+        });
+      }
+
+      await new Promise(
+        (resolve) =>
+          setTimeout(
+            resolve,
+            0
+          )
+      );
+    }
+
+    return output;
+  }
+
+  async function loadReference() {
     try {
       const response =
         await fetch(
           REFERENCE_CSV_URL,
           {
-            method:
-              "GET",
             cache:
-              "no-store"
+              "force-cache"
           }
         );
 
       if (!response.ok) {
         throw new Error(
-          `CSV HTTP ${response.status}`
+          `HTTP ${response.status}`
         );
       }
 
       const text =
         await response.text();
 
-      return parseCSV(text);
-
+      return await parseReferenceCSV(
+        text
+      );
     } catch (error) {
       console.warn(
         "FSM FC26 reference unavailable:",
         error
       );
-
       return [];
     }
   }
 
-  function mergePlayers(
-    primary,
-    reference
-  ) {
+  function merge(primary, reference) {
     const map =
       new Map();
 
@@ -845,196 +571,112 @@
     );
   }
 
-  async function loadPlayers() {
-    const cached =
-      cacheGet();
-
-    if (
-      cached &&
-      cached.length >
-        1000
-    ) {
-      window.FSM_PLAYERS =
-        cached;
-
-      window.FSM_PLAYERS_SOURCE =
-        "cache";
-
-      window.FSM_PLAYERS_META =
-        {
-          total:
-            cached.length,
-
-          fsm:
-            cached.filter(
-              p =>
-                p.source_type ===
-                "fsm"
-            ).length,
-
-          reference:
-            cached.filter(
-              p =>
-                p.source_type ===
-                "reference"
-            ).length
-        };
-
-      dispatchReady(
-        cached,
-        "cache"
-      );
-
-      void refreshPlayers();
-
-      return cached;
-    }
-
-    const supabasePlayers =
-      await loadSupabasePlayers();
-
-    let referencePlayers =
-      [];
-
-    if (
-      supabasePlayers.length <
-      SUPABASE_MIN_COUNT
-    ) {
-      referencePlayers =
-        await loadReferenceCSV();
-    }
-
-    const merged =
-      mergePlayers(
-        supabasePlayers,
-        referencePlayers
-      );
-
-    const players =
-      merged.length
-        ? merged
-        : FALLBACK.slice();
-
-    window.FSM_PLAYERS =
-      players;
-
-    window.FSM_PLAYERS_SOURCE =
-      merged.length
-        ? referencePlayers.length
-          ? "supabase+fc26-reference"
-          : "supabase"
-        : "fallback";
-
-    window.FSM_PLAYERS_META =
-      {
-        total:
-          players.length,
-
-        fsm:
-          players.filter(
-            p =>
-              p.source_type !==
-              "reference"
-          ).length,
-
-        reference:
-          players.filter(
-            p =>
-              p.source_type ===
-              "reference"
-          ).length
-      };
-
-    cacheSet(
-      players
-    );
-
-    dispatchReady(
-      players,
-      window.FSM_PLAYERS_SOURCE
-    );
-
-    return players;
-  }
-
-  async function refreshPlayers() {
-    const supabasePlayers =
-      await loadSupabasePlayers();
-
-    let referencePlayers =
-      [];
-
-    if (
-      supabasePlayers.length <
-      SUPABASE_MIN_COUNT
-    ) {
-      referencePlayers =
-        await loadReferenceCSV();
-    }
-
-    const merged =
-      mergePlayers(
-        supabasePlayers,
-        referencePlayers
-      );
-
-    if (
-      merged.length
-    ) {
-      window.FSM_PLAYERS =
-        merged;
-
-      window.FSM_PLAYERS_SOURCE =
-        referencePlayers.length
-          ? "supabase+fc26-reference"
-          : "supabase";
-
-      window.FSM_PLAYERS_META =
-        {
-          total:
-            merged.length,
-
-          fsm:
-            supabasePlayers.length,
-
-          reference:
-            referencePlayers.length
-        };
-
-      cacheSet(
-        merged
-      );
-
-      dispatchReady(
-        merged,
-        window.FSM_PLAYERS_SOURCE
-      );
-    }
-
-    return merged;
-  }
-
-  function dispatchReady(
-    players,
-    source
+  function idle(
+    callback,
+    delay = 0
   ) {
-    window.dispatchEvent(
-      new CustomEvent(
-        "fsm:players-ready",
+    if (
+      "requestIdleCallback" in
+      window
+    ) {
+      window.requestIdleCallback(
+        callback,
         {
-          detail: {
-            players,
-            source,
-            total:
-              players.length
-          }
+          timeout:
+            2500
         }
-      )
+      );
+      return;
+    }
+
+    setTimeout(
+      callback,
+      delay
+    );
+  }
+
+  async function bootstrap() {
+    publish(
+      FALLBACK.slice(),
+      "fallback"
+    );
+
+    const supabasePlayers =
+      await loadSupabase();
+
+    if (
+      supabasePlayers.length
+    ) {
+      publish(
+        supabasePlayers,
+        "supabase"
+      );
+    }
+
+    idle(
+      async () => {
+        await new Promise(
+          resolve =>
+            setTimeout(
+              resolve,
+              REFERENCE_DELAY
+            )
+        );
+
+        const reference =
+          await loadReference();
+
+        const primary =
+          supabasePlayers.length
+            ? supabasePlayers
+            : FALLBACK;
+
+        const merged =
+          merge(
+            primary,
+            reference
+          );
+
+        if (
+          merged.length >
+          primary.length
+        ) {
+          publish(
+            merged,
+            supabasePlayers.length
+              ? "supabase+fc26-reference"
+              : "fallback+fc26-reference"
+          );
+        }
+      }
     );
   }
 
   window.FSM_PLAYERS_REFRESH =
-    refreshPlayers;
+    async () => {
+      const primary =
+        await loadSupabase();
+
+      const reference =
+        await loadReference();
+
+      const merged =
+        merge(
+          primary.length
+            ? primary
+            : FALLBACK,
+          reference
+        );
+
+      publish(
+        merged,
+        primary.length
+          ? "supabase+fc26-reference"
+          : "fallback+fc26-reference"
+      );
+
+      return merged;
+    };
 
   window.FSM_PLAYERS_INFO =
     () => ({
@@ -1060,21 +702,25 @@
   window.FSM_PLAYERS_SOURCE =
     "fallback";
 
-  window.FSM_PLAYERS_META =
-    {
-      total:
-        FALLBACK.length,
-      fsm:
-        FALLBACK.length,
-      reference:
-        0
-    };
+  window.FSM_PLAYERS_META = {
+    total:
+      FALLBACK.length,
+    source:
+      "fallback"
+  };
 
-  dispatchReady(
-    window.FSM_PLAYERS,
-    "fallback"
-  );
-
-  void loadPlayers();
-
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+    document.addEventListener(
+      "DOMContentLoaded",
+      bootstrap,
+      {
+        once: true
+      }
+    );
+  } else {
+    void bootstrap();
+  }
 })();
