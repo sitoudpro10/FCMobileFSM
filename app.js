@@ -470,81 +470,170 @@ function addImageStyles() {
     style
   );
 }
-  function card(player) {
-    return `
-      <article class="card">
+ function card(player) {
+  const image =
+    getStoredImage(player);
 
-        <div class="art">
+  const initials =
+    String(
+      player.name || "?"
+    )
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map(
+        part =>
+          part[0] || ""
+      )
+      .join("")
+      .toUpperCase();
 
-          <div class="ovr">
-            ${esc(player.ovr || "—")}
-          </div>
+  return `
+    <article
+      class="card"
+      data-player-id="${esc(player.id)}"
+    >
 
-          <div class="pos">
-            ${esc(player.pos)}
-          </div>
+      <div class="art">
 
-          <div class="crest">
-            ${esc(
-              String(player.club || "")
-                .slice(0, 2)
-                .toUpperCase()
-            )}
-          </div>
-
-          <div class="face">
-            ${esc(player.country || "⚽")}
-          </div>
-
-          <div class="flag">
-            ${esc(player.country || "")}
-          </div>
-
+        <div class="ovr">
+          ${esc(
+            player.ovr ||
+            "—"
+          )}
         </div>
 
-        <h3>
-          ${esc(player.name)}
-        </h3>
-
-        <p class="sub">
-          ${esc(player.club || "Sin club")}
-        </p>
-
-        <div class="stats">
-
-          <span>
-            RIT ${esc(player.pace)}
-          </span>
-
-          <span>
-            TIR ${esc(player.shoot)}
-          </span>
-
-          <span>
-            PAS ${esc(player.pass)}
-          </span>
-
-          <span>
-            REG ${esc(player.dribble)}
-          </span>
-
-          <span>
-            DEF ${esc(player.def)}
-          </span>
-
-          <span>
-            FIS ${esc(player.phys)}
-          </span>
-
+        <div class="pos">
+          ${esc(
+            player.pos
+          )}
         </div>
 
-        <div class="price">
-          🪙 ${money(player.price)}
+        <div class="crest">
+          ${esc(
+            String(
+              player.club ||
+              ""
+            )
+              .slice(0, 2)
+              .toUpperCase()
+          )}
         </div>
 
-      </article>
-    `;
-  }
+        <div
+          class="fsm-player-photo-fallback"
+          style="
+            position:absolute;
+            inset:0;
+            display:grid;
+            place-items:center;
+            font-weight:900;
+            font-size:28px;
+            color:#fff;
+          "
+        >
+          ${esc(initials)}
+        </div>
+
+        <img
+          class="fsm-player-photo"
+          ${
+            image
+              ? `src="${esc(image)}"`
+              : ""
+          }
+          alt="${esc(
+            player.name
+          )}"
+          loading="lazy"
+          decoding="async"
+          referrerpolicy="no-referrer"
+          style="
+            position:absolute;
+            inset:8px;
+            width:calc(100% - 16px);
+            height:calc(100% - 16px);
+            object-fit:contain;
+            display:${
+              image
+                ? "block"
+                : "none"
+            };
+            pointer-events:none;
+          "
+        />
+
+        <div class="flag">
+          ${esc(
+            player.country ||
+            ""
+          )}
+        </div>
+
+      </div>
+
+      <h3>
+        ${esc(
+          player.name
+        )}
+      </h3>
+
+      <p class="sub">
+        ${esc(
+          player.club ||
+          "Sin club"
+        )}
+      </p>
+
+      <div class="stats">
+
+        <span>
+          RIT ${esc(
+            player.pace
+          )}
+        </span>
+
+        <span>
+          TIR ${esc(
+            player.shoot
+          )}
+        </span>
+
+        <span>
+          PAS ${esc(
+            player.pass
+          )}
+        </span>
+
+        <span>
+          REG ${esc(
+            player.dribble
+          )}
+        </span>
+
+        <span>
+          DEF ${esc(
+            player.def
+          )}
+        </span>
+
+        <span>
+          FIS ${esc(
+            player.phys
+          )}
+        </span>
+
+      </div>
+
+      <div class="price">
+        🪙 ${money(
+          player.price
+        )}
+      </div>
+
+    </article>
+  `;
+}
 
   function renderFeatured() {
     const element = $("featured");
