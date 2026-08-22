@@ -1,11 +1,17 @@
-;(() => {
+/* =========================================================
+   FC MOBILE FSM - FASE 6
+   FAVORITOS / HISTORIAL / ALERTAS / AJUSTES / MI ESPACIO
+   VERSIÓN CORREGIDA
+   ========================================================= */
+
+(() => {
   "use strict";
 
   const SUPABASE_URL =
     "https://jshevgjyweoianpbbjdl.supabase.co";
 
   const SUPABASE_KEY =
-    "sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6TMaFORK";
+    "sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6UTaFORK";
 
   const sb =
     window.supabase?.createClient(
@@ -18,19 +24,25 @@
 
   let currentUser = null;
   let profile = null;
-  let selectedSection = "overview";
   let currentFavoriteIds = new Set();
-  let currentAlerts = [];
-  let fetchRecorderInstalled = false;
+
+  /* =========================================================
+     ESTILOS
+     ========================================================= */
 
   function addStyles() {
-    if ($("fsmPhase6Styles")) return;
+    if ($("fsmPhase6Styles")) {
+      return;
+    }
 
-    const style = document.createElement("style");
-    style.id = "fsmPhase6Styles";
+    const style =
+      document.createElement("style");
+
+    style.id =
+      "fsmPhase6Styles";
 
     style.textContent = `
-      .fsm6-nav-btn{
+      .fsm6-nav-btn {
         border:1px solid #ffffff18;
         background:#ffffff08;
         color:#fff;
@@ -38,14 +50,14 @@
         padding:9px 12px;
         cursor:pointer;
         font-weight:800;
-        font-size:12px
+        font-size:12px;
       }
 
-      .fsm6-nav-btn:hover{
-        background:#ffffff14
+      .fsm6-nav-btn:hover {
+        background:#ffffff14;
       }
 
-      .fsm6-overlay{
+      .fsm6-overlay {
         display:none;
         position:fixed;
         inset:0;
@@ -54,14 +66,14 @@
         backdrop-filter:blur(10px);
         align-items:center;
         justify-content:center;
-        padding:14px
+        padding:14px;
       }
 
-      .fsm6-overlay.open{
-        display:flex
+      .fsm6-overlay.open {
+        display:flex;
       }
 
-      .fsm6-window{
+      .fsm6-window {
         width:min(1100px,100%);
         max-height:92vh;
         overflow:hidden;
@@ -70,113 +82,113 @@
         background:#0f1521;
         border:1px solid #ffffff15;
         border-radius:20px;
-        box-shadow:0 25px 90px #000b
+        box-shadow:0 25px 90px #000b;
       }
 
-      .fsm6-sidebar{
+      .fsm6-sidebar {
         padding:18px;
         border-right:1px solid #ffffff10;
         background:linear-gradient(180deg,#151126,#101622);
-        overflow:auto
+        overflow:auto;
       }
 
-      .fsm6-brand{
+      .fsm6-brand {
         color:#bcaeff;
         font-size:11px;
         font-weight:900;
-        letter-spacing:1.5px
+        letter-spacing:1.5px;
       }
 
-      .fsm6-sidebar h2{
+      .fsm6-sidebar h2 {
         color:#fff;
-        margin:6px 0 15px
+        margin:6px 0 15px;
       }
 
-      .fsm6-menu{
+      .fsm6-menu {
         display:grid;
-        gap:7px
+        gap:7px;
       }
 
-      .fsm6-menu button{
+      .fsm6-menu button {
         text-align:left;
         border:1px solid transparent;
         background:transparent;
         color:#aeb5c5;
         border-radius:10px;
         padding:11px;
-        cursor:pointer
+        cursor:pointer;
       }
 
       .fsm6-menu button.active,
-      .fsm6-menu button:hover{
+      .fsm6-menu button:hover {
         background:#ffffff09;
         color:#fff;
-        border-color:#ffffff10
+        border-color:#ffffff10;
       }
 
-      .fsm6-content{
+      .fsm6-content {
         min-width:0;
         overflow:auto;
-        padding:22px
+        padding:22px;
       }
 
-      .fsm6-top{
+      .fsm6-top {
         display:flex;
         justify-content:space-between;
         align-items:flex-start;
-        gap:12px
+        gap:12px;
       }
 
-      .fsm6-title{
+      .fsm6-title {
         margin:0;
         color:#fff;
-        font-size:28px
+        font-size:28px;
       }
 
-      .fsm6-sub{
+      .fsm6-sub {
         margin:5px 0 18px;
         color:#929caf;
-        line-height:1.5
+        line-height:1.5;
       }
 
-      .fsm6-grid{
+      .fsm6-grid {
         display:grid;
         grid-template-columns:repeat(3,minmax(0,1fr));
-        gap:12px
+        gap:12px;
       }
 
-      .fsm6-card{
+      .fsm6-card {
         background:#ffffff04;
         border:1px solid #ffffff10;
         border-radius:15px;
-        padding:15px
+        padding:15px;
       }
 
-      .fsm6-card h3{
+      .fsm6-card h3 {
         margin:0 0 8px;
         color:#fff;
-        font-size:14px
+        font-size:14px;
       }
 
-      .fsm6-card p{
+      .fsm6-card p {
         margin:0;
         color:#929caf;
         font-size:12px;
-        line-height:1.55
+        line-height:1.55;
       }
 
-      .fsm6-stat{
+      .fsm6-stat {
         font-size:26px;
         color:#fff;
-        font-weight:950
+        font-weight:950;
       }
 
-      .fsm6-list{
+      .fsm6-list {
         display:grid;
-        gap:9px
+        gap:9px;
       }
 
-      .fsm6-list-item{
+      .fsm6-list-item {
         display:flex;
         align-items:center;
         justify-content:space-between;
@@ -184,22 +196,22 @@
         padding:11px 12px;
         border-radius:12px;
         background:#ffffff05;
-        border:1px solid #ffffff0c
+        border:1px solid #ffffff0c;
       }
 
-      .fsm6-list-item strong{
+      .fsm6-list-item strong {
         color:#fff;
         font-size:12px;
-        display:block
+        display:block;
       }
 
-      .fsm6-list-item small{
+      .fsm6-list-item small {
         color:#929caf;
         display:block;
-        margin-top:3px
+        margin-top:3px;
       }
 
-      .fsm6-btn{
+      .fsm6-btn {
         border:1px solid #ffffff15;
         background:#ffffff08;
         color:#fff;
@@ -207,26 +219,26 @@
         padding:8px 10px;
         cursor:pointer;
         font-weight:800;
-        font-size:11px
+        font-size:11px;
       }
 
-      .fsm6-btn.primary{
+      .fsm6-btn.primary {
         background:#7c5cff;
-        border-color:transparent
+        border-color:transparent;
       }
 
-      .fsm6-btn.danger{
+      .fsm6-btn.danger {
         background:#ff526622;
-        border-color:#ff526644
+        border-color:#ff526644;
       }
 
-      .fsm6-form{
+      .fsm6-form {
         display:grid;
-        gap:10px
+        gap:10px;
       }
 
       .fsm6-form input,
-      .fsm6-form select{
+      .fsm6-form select {
         width:100%;
         box-sizing:border-box;
         border:1px solid #ffffff12;
@@ -234,23 +246,23 @@
         color:#fff;
         border-radius:9px;
         padding:10px;
-        outline:none
+        outline:none;
       }
 
       .fsm6-form input:focus,
-      .fsm6-form select:focus{
-        border-color:#7c5cff
+      .fsm6-form select:focus {
+        border-color:#7c5cff;
       }
 
-      .fsm6-empty{
+      .fsm6-empty {
         border:1px dashed #ffffff15;
         border-radius:14px;
         padding:22px;
         text-align:center;
-        color:#929caf
+        color:#929caf;
       }
 
-      .fsm6-favorite{
+      .fsm6-favorite {
         position:absolute;
         z-index:20;
         top:8px;
@@ -261,15 +273,15 @@
         border:1px solid #ffffff18;
         background:#0008;
         color:#fff;
-        cursor:pointer
+        cursor:pointer;
       }
 
-      .fsm6-favorite.active{
+      .fsm6-favorite.active {
         color:#ffd166;
-        background:#7c5cff33
+        background:#7c5cff33;
       }
 
-      .fsm6-toast{
+      .fsm6-toast {
         position:fixed;
         left:50%;
         bottom:24px;
@@ -282,40 +294,40 @@
         padding:10px 14px;
         display:none;
         box-shadow:0 20px 60px #0008;
-        font-size:12px
+        font-size:12px;
       }
 
-      .fsm6-toast.show{
-        display:block
+      .fsm6-toast.show {
+        display:block;
       }
 
-      @media(max-width:850px){
-        .fsm6-window{
-          grid-template-columns:1fr
+      @media(max-width:850px) {
+        .fsm6-window {
+          grid-template-columns:1fr;
         }
 
-        .fsm6-sidebar{
+        .fsm6-sidebar {
           border-right:0;
           border-bottom:1px solid #ffffff10;
-          max-height:220px
+          max-height:220px;
         }
 
-        .fsm6-menu{
-          grid-template-columns:repeat(2,1fr)
+        .fsm6-menu {
+          grid-template-columns:repeat(2,1fr);
         }
 
-        .fsm6-grid{
-          grid-template-columns:1fr
+        .fsm6-grid {
+          grid-template-columns:1fr;
         }
       }
 
-      @media(max-width:600px){
-        .fsm6-content{
-          padding:15px
+      @media(max-width:600px) {
+        .fsm6-content {
+          padding:15px;
         }
 
-        .fsm6-title{
-          font-size:23px
+        .fsm6-title {
+          font-size:23px;
         }
       }
     `;
@@ -323,20 +335,26 @@
     document.head.appendChild(style);
   }
 
-  function addToast() {
-    if ($("fsm6Toast")) return;
+  /* =========================================================
+     TOAST
+     ========================================================= */
 
-    const toastElement =
+  function addToast() {
+    if ($("fsm6Toast")) {
+      return;
+    }
+
+    const element =
       document.createElement("div");
 
-    toastElement.id =
+    element.id =
       "fsm6Toast";
 
-    toastElement.className =
+    element.className =
       "fsm6-toast";
 
     document.body.appendChild(
-      toastElement
+      element
     );
   }
 
@@ -344,7 +362,9 @@
     const element =
       $("fsm6Toast");
 
-    if (!element) return;
+    if (!element) {
+      return;
+    }
 
     element.textContent =
       message;
@@ -359,51 +379,94 @@
 
     element._timer =
       setTimeout(
-        () =>
+        () => {
           element.classList.remove(
             "show"
-          ),
+          );
+        },
         2800
       );
   }
 
-  function addOpenButton() {
-    if ($("fsm6Open")) return;
+  /* =========================================================
+     USUARIO
+     ========================================================= */
 
-    const actions =
-      document.querySelector(
-        ".top-actions"
+  async function loadUser() {
+    if (!sb) {
+      return;
+    }
+
+    try {
+      const {
+        data: {
+          session
+        },
+        error
+      } =
+        await sb.auth.getSession();
+
+      if (error) {
+        console.warn(
+          "FSM6 getSession:",
+          error
+        );
+        return;
+      }
+
+      currentUser =
+        session?.user ||
+        null;
+
+      if (!currentUser) {
+        profile = null;
+        return;
+      }
+
+      const result =
+        await sb
+          .from("profiles")
+          .select(
+            "email,free_uses,is_pro,created_at"
+          )
+          .eq(
+            "id",
+            currentUser.id
+          )
+          .maybeSingle();
+
+      if (result.error) {
+        console.warn(
+          "FSM6 profile:",
+          result.error
+        );
+        profile = null;
+        return;
+      }
+
+      profile =
+        result.data ||
+        null;
+
+    } catch (error) {
+      console.warn(
+        "FSM6 loadUser:",
+        error
       );
-
-    if (!actions) return;
-
-    const button =
-      document.createElement(
-        "button"
-      );
-
-    button.id = "fsm6Open";
-    button.className =
-      "fsm6-nav-btn";
-    button.type = "button";
-    button.textContent =
-      "⭐ Mi espacio";
-
-    button.onclick =
-      openPanel;
-
-    actions.prepend(
-      button
-    );
+    }
   }
 
+  /* =========================================================
+     MI ESPACIO
+     ========================================================= */
+
   function createPanel() {
-    if ($("fsm6Overlay")) return;
+    if ($("fsm6Overlay")) {
+      return;
+    }
 
     const overlay =
-      document.createElement(
-        "div"
-      );
+      document.createElement("div");
 
     overlay.id =
       "fsm6Overlay";
@@ -477,6 +540,7 @@
           <div class="fsm6-top">
 
             <div>
+
               <h1
                 id="fsm6Title"
                 class="fsm6-title"
@@ -490,6 +554,7 @@
               >
                 Tu centro personal de FSM.
               </p>
+
             </div>
 
             <button
@@ -502,7 +567,9 @@
 
           </div>
 
-          <div id="fsm6Body"></div>
+          <div
+            id="fsm6Body"
+          ></div>
 
         </main>
 
@@ -512,6 +579,9 @@
     document.body.appendChild(
       overlay
     );
+
+    $("fsm6Close").onclick =
+      closePanel;
 
     overlay.addEventListener(
       "click",
@@ -525,15 +595,13 @@
       }
     );
 
-    $("fsm6Close").onclick =
-      closePanel;
-
     overlay
       .querySelectorAll(
         "[data-section]"
       )
       .forEach(
         (button) => {
+
           button.onclick =
             () =>
               renderSection(
@@ -543,11 +611,53 @@
       );
   }
 
+  function addOpenButton() {
+    if ($("fsm6Open")) {
+      return;
+    }
+
+    const actions =
+      document.querySelector(
+        ".top-actions"
+      );
+
+    if (!actions) {
+      return;
+    }
+
+    const button =
+      document.createElement(
+        "button"
+      );
+
+    button.id =
+      "fsm6Open";
+
+    button.className =
+      "fsm6-nav-btn";
+
+    button.type =
+      "button";
+
+    button.textContent =
+      "⭐ Mi espacio";
+
+    button.onclick =
+      openPanel;
+
+    actions.prepend(
+      button
+    );
+  }
+
   async function openPanel() {
+    await loadUser();
+
     if (!currentUser) {
       toast(
         "Inicia sesión para abrir Mi espacio."
       );
+
       return;
     }
 
@@ -556,7 +666,7 @@
         "open"
       );
 
-    await loadUserData();
+    await loadFavoriteIds();
 
     await renderSection(
       "overview"
@@ -570,58 +680,17 @@
       );
   }
 
-  async function loadUser() {
-    if (!sb) return;
+  /* =========================================================
+     RESUMEN
+     ========================================================= */
 
-    const {
-      data: {
-        session
-      }
-    } =
-      await sb.auth.getSession();
-
-    currentUser =
-      session?.user ||
-      null;
+  async function renderOverview() {
 
     if (!currentUser) {
-      profile = null;
       return;
     }
 
-    const result =
-      await sb
-        .from("profiles")
-        .select(
-          "email,free_uses,is_pro,created_at"
-        )
-        .eq(
-          "id",
-          currentUser.id
-        )
-        .maybeSingle();
-
-    profile =
-      result.data ||
-      null;
-  }
-
-  async function loadSummary() {
-    if (!currentUser) {
-      return {
-        favorites: 0,
-        analyses: 0,
-        tickets: 0,
-        alerts: 0
-      };
-    }
-
-    const [
-      favorites,
-      analyses,
-      tickets,
-      alerts
-    ] =
+    const results =
       await Promise.all([
         sb
           .from(
@@ -630,8 +699,10 @@
           .select(
             "player_id",
             {
-              count:"exact",
-              head:true
+              count:
+                "exact",
+              head:
+                true
             }
           )
           .eq(
@@ -646,8 +717,10 @@
           .select(
             "id",
             {
-              count:"exact",
-              head:true
+              count:
+                "exact",
+              head:
+                true
             }
           )
           .eq(
@@ -662,8 +735,10 @@
           .select(
             "id",
             {
-              count:"exact",
-              head:true
+              count:
+                "exact",
+              head:
+                true
             }
           )
           .eq(
@@ -678,8 +753,10 @@
           .select(
             "id",
             {
-              count:"exact",
-              head:true
+              count:
+                "exact",
+              head:
+                true
             }
           )
           .eq(
@@ -692,37 +769,38 @@
           )
       ]);
 
-    return {
-      favorites:
-        favorites.count ||
-        0,
+    const favorites =
+      results[0].count ||
+      0;
 
-      analyses:
-        analyses.count ||
-        0,
+    const analyses =
+      results[1].count ||
+      0;
 
-      tickets:
-        tickets.count ||
-        0,
+    const tickets =
+      results[2].count ||
+      0;
 
-      alerts:
-        alerts.count ||
-        0
-    };
-  }
+    const alerts =
+      results[3].count ||
+      0;
 
-  async function renderOverview() {
-    const summary =
-      await loadSummary();
+    $("fsm6Title").textContent =
+      "🏠 Mi resumen";
+
+    $("fsm6Sub").textContent =
+      "Tu actividad y estado de FSM.";
 
     $("fsm6Body").innerHTML = `
       <div class="fsm6-grid">
 
         <div class="fsm6-card">
           <h3>⭐ Favoritos</h3>
+
           <div class="fsm6-stat">
-            ${summary.favorites}
+            ${favorites}
           </div>
+
           <p>
             Jugadores guardados.
           </p>
@@ -730,19 +808,23 @@
 
         <div class="fsm6-card">
           <h3>🧠 Análisis</h3>
+
           <div class="fsm6-stat">
-            ${summary.analyses}
+            ${analyses}
           </div>
+
           <p>
-            Análisis de FSM IA guardados.
+            Análisis FSM IA.
           </p>
         </div>
 
         <div class="fsm6-card">
           <h3>🔔 Alertas</h3>
+
           <div class="fsm6-stat">
-            ${summary.alerts}
+            ${alerts}
           </div>
+
           <p>
             Alertas activas.
           </p>
@@ -750,16 +832,19 @@
 
         <div class="fsm6-card">
           <h3>🎫 Soporte</h3>
+
           <div class="fsm6-stat">
-            ${summary.tickets}
+            ${tickets}
           </div>
+
           <p>
-            Incidencias creadas.
+            Incidencias enviadas.
           </p>
         </div>
 
         <div class="fsm6-card">
           <h3>⭐ Plan</h3>
+
           <div class="fsm6-stat">
             ${
               profile?.is_pro
@@ -767,6 +852,7 @@
                 : "FREE"
             }
           </div>
+
           <p>
             ${
               profile?.is_pro
@@ -778,22 +864,14 @@
 
         <div class="fsm6-card">
           <h3>👤 Cuenta</h3>
+
           <p>
             ${escapeHtml(
               profile?.email ||
-              currentUser?.email ||
+              currentUser.email ||
               ""
             )}
           </p>
-
-          <button
-            class="fsm6-btn primary"
-            data-goto="settings"
-            style="margin-top:10px"
-            type="button"
-          >
-            Abrir ajustes
-          </button>
         </div>
 
       </div>
@@ -802,35 +880,83 @@
         class="fsm6-card"
         style="margin-top:12px"
       >
-        <h3>🚀 Recomendado</h3>
+
+        <h3>
+          🚀 Centro personal
+        </h3>
 
         <p>
-          Guarda tus jugadores favoritos,
-          revisa tus análisis y configura
-          alertas para tener FSM organizado
-          en un solo lugar.
+          Desde aquí puedes gestionar tus favoritos,
+          consultar tus análisis, configurar alertas
+          y revisar tus incidencias de soporte.
         </p>
+
       </div>
     `;
-
-    $("fsm6Body")
-      .querySelectorAll(
-        "[data-goto]"
-      )
-      .forEach(
-        (button) => {
-          button.onclick =
-            () =>
-              renderSection(
-                button.dataset.goto
-              );
-        }
-      );
   }
 
-  async function loadFavorites() {
+  /* =========================================================
+     FAVORITOS
+     ========================================================= */
+
+  async function loadFavoriteIds() {
+    currentFavoriteIds =
+      new Set();
+
     if (!currentUser) {
-      return [];
+      return;
+    }
+
+    try {
+
+      const result =
+        await sb
+          .from(
+            "player_favorites"
+          )
+          .select(
+            "player_id"
+          )
+          .eq(
+            "user_id",
+            currentUser.id
+          );
+
+      if (result.error) {
+        console.warn(
+          "FSM6 favorites:",
+          result.error
+        );
+        return;
+      }
+
+      (
+        result.data ||
+        []
+      ).forEach(
+        (row) => {
+
+          currentFavoriteIds.add(
+            Number(
+              row.player_id
+            )
+          );
+
+        }
+      );
+
+    } catch (error) {
+      console.warn(
+        "FSM6 favorite ids:",
+        error
+      );
+    }
+  }
+
+  async function renderFavorites() {
+
+    if (!currentUser) {
+      return;
     }
 
     const result =
@@ -848,35 +974,50 @@
         .order(
           "created_at",
           {
-            ascending:false
+            ascending:
+              false
           }
         );
 
-    return (
+    if (result.error) {
+      $("fsm6Body").innerHTML = `
+        <div class="fsm6-empty">
+          No se pudieron cargar tus favoritos.
+        </div>
+      `;
+
+      return;
+    }
+
+    const rows =
       result.data ||
-      []
-    );
-  }
+      [];
 
-  async function renderFavorites() {
-    const data =
-      await loadFavorites();
+    $("fsm6Title").textContent =
+      "⭐ Mis favoritos";
 
-    if (!data.length) {
+    $("fsm6Sub").textContent =
+      "Jugadores que has guardado.";
+
+    if (!rows.length) {
       $("fsm6Body").innerHTML = `
         <div class="fsm6-empty">
 
-          <div style="font-size:34px">
+          <div
+            style="font-size:34px"
+          >
             ⭐
           </div>
 
-          <h3 style="color:#fff">
+          <h3
+            style="color:#fff"
+          >
             No tienes favoritos todavía
           </h3>
 
           <p>
-            Guarda jugadores desde Jugadores
-            para tenerlos aquí.
+            Pulsa ☆ en las cartas de jugadores
+            para guardarlos aquí.
           </p>
 
         </div>
@@ -888,17 +1029,20 @@
     $("fsm6Body").innerHTML = `
       <div class="fsm6-list">
 
-        ${data
+        ${rows
           .map(
-            (item) => {
+            (row) => {
 
               const player =
-                item.players;
+                row.players;
 
               return `
-                <div class="fsm6-list-item">
+                <div
+                  class="fsm6-list-item"
+                >
 
                   <div>
+
                     <strong>
                       ${escapeHtml(
                         player?.name ||
@@ -917,12 +1061,13 @@
                         "-"
                       )}
                     </small>
+
                   </div>
 
                   <button
                     class="fsm6-btn danger"
                     data-remove-favorite="${escapeAttr(
-                      item.player_id
+                      row.player_id
                     )}"
                     type="button"
                   >
@@ -953,6 +1098,7 @@
                     .removeFavorite
                 )
               );
+
         }
       );
   }
@@ -960,12 +1106,13 @@
   async function addFavorite(
     playerId
   ) {
+
     if (!currentUser) {
       toast(
         "Inicia sesión para guardar favoritos."
       );
 
-      return false;
+      return;
     }
 
     const result =
@@ -983,6 +1130,7 @@
 
     if (result.error) {
       console.error(
+        "FSM6 add favorite:",
         result.error
       );
 
@@ -990,7 +1138,7 @@
         "No se pudo guardar el favorito."
       );
 
-      return false;
+      return;
     }
 
     currentFavoriteIds.add(
@@ -1000,16 +1148,19 @@
     );
 
     toast(
-      "⭐ Jugador guardado en favoritos."
+      "⭐ Jugador guardado."
     );
 
-    return true;
+    refreshFavoriteButtons();
   }
 
   async function removeFavorite(
     playerId
   ) {
-    if (!currentUser) return;
+
+    if (!currentUser) {
+      return;
+    }
 
     const result =
       await sb
@@ -1044,51 +1195,20 @@
       "Favorito eliminado."
     );
 
+    refreshFavoriteButtons();
+
     if (
-      selectedSection ===
-      "favorites"
+      $("fsm6Overlay")
+        ?.classList.contains(
+          "open"
+        )
     ) {
       await renderFavorites();
     }
-
-    refreshFavoriteButtons();
-  }
-
-  async function loadFavoriteIds() {
-    currentFavoriteIds =
-      new Set();
-
-    if (!currentUser) {
-      return;
-    }
-
-    const result =
-      await sb
-        .from(
-          "player_favorites"
-        )
-        .select(
-          "player_id"
-        )
-        .eq(
-          "user_id",
-          currentUser.id
-        );
-
-    (
-      result.data ||
-      []
-    ).forEach(
-      (row) =>
-        currentFavoriteIds.add(
-          Number(
-            row.player_id
-          )
-        )
-    );
   }
 
   function refreshFavoriteButtons() {
+
     const players =
       Array.isArray(
         window.FSM_PLAYERS
@@ -1115,13 +1235,12 @@
             return;
           }
 
-          const name =
+          const title =
             card.querySelector(
               "h3"
-            )?.textContent
-              ?.trim();
+            );
 
-          if (!name) {
+          if (!title) {
             return;
           }
 
@@ -1129,9 +1248,13 @@
             players.find(
               (item) =>
                 String(
-                  item.name
-                ).toLowerCase() ===
-                name.toLowerCase()
+                  item.name ||
+                  ""
+                )
+                  .toLowerCase() ===
+                title.textContent
+                  .trim()
+                  .toLowerCase()
             );
 
           if (!player) {
@@ -1153,37 +1276,35 @@
               "button"
             );
 
+          const id =
+            Number(
+              player.id
+            );
+
+          const active =
+            currentFavoriteIds.has(
+              id
+            );
+
           button.type =
             "button";
 
           button.className =
             "fsm6-favorite";
 
-          button.dataset.playerId =
-            player.id;
-
-          const isFavorite =
-            currentFavoriteIds.has(
-              Number(
-                player.id
-              )
-            );
-
-          button.textContent =
-            isFavorite
-              ? "★"
-              : "☆";
-
-          if (
-            isFavorite
-          ) {
+          if (active) {
             button.classList.add(
               "active"
             );
           }
 
+          button.textContent =
+            active
+              ? "★"
+              : "☆";
+
           button.title =
-            isFavorite
+            active
               ? "Quitar de favoritos"
               : "Añadir a favoritos";
 
@@ -1191,11 +1312,6 @@
             async (event) => {
 
               event.stopPropagation();
-
-              const id =
-                Number(
-                  player.id
-                );
 
               if (
                 currentFavoriteIds.has(
@@ -1221,7 +1337,12 @@
       );
   }
 
+  /* =========================================================
+     HISTORIAL
+     ========================================================= */
+
   async function renderHistory() {
+
     if (!currentUser) {
       return;
     }
@@ -1241,32 +1362,52 @@
         .order(
           "created_at",
           {
-            ascending:false
+            ascending:
+              false
           }
         )
         .limit(
           50
         );
 
+    if (result.error) {
+      $("fsm6Body").innerHTML = `
+        <div class="fsm6-empty">
+          No se pudo cargar el historial.
+        </div>
+      `;
+
+      return;
+    }
+
     const rows =
       result.data ||
       [];
+
+    $("fsm6Title").textContent =
+      "🧠 Historial IA";
+
+    $("fsm6Sub").textContent =
+      "Tus análisis anteriores.";
 
     if (!rows.length) {
       $("fsm6Body").innerHTML = `
         <div class="fsm6-empty">
 
-          <div style="font-size:34px">
+          <div
+            style="font-size:34px"
+          >
             🧠
           </div>
 
-          <h3 style="color:#fff">
-            No hay análisis guardados
+          <h3
+            style="color:#fff"
+          >
+            Todavía no hay historial
           </h3>
 
           <p>
-            Tus próximos análisis de FSM IA
-            aparecerán aquí automáticamente.
+            Los análisis que se guarden aparecerán aquí.
           </p>
 
         </div>
@@ -1291,38 +1432,48 @@
                 {};
 
               return `
-                <div class="fsm6-list-item">
+                <div
+                  class="fsm6-list-item"
+                >
 
                   <div>
 
                     <strong>
-                      ${escapeHtml(
-                        request.position ||
-                        "Análisis"
-                      )}
+                      ${
+                        escapeHtml(
+                          request.position ||
+                          "Análisis"
+                        )
+                      }
 
                       ·
 
-                      ${escapeHtml(
-                        request.budget ||
-                        ""
-                      )}
+                      ${
+                        escapeHtml(
+                          request.budget ||
+                          ""
+                        )
+                      }
                     </strong>
 
                     <small>
                       Puntuación:
-                      ${escapeHtml(
-                        result.score ??
-                        "-"
-                      )}
+                      ${
+                        escapeHtml(
+                          result.score ??
+                          "-"
+                        )
+                      }
 
                       ·
 
-                      ${new Date(
-                        row.created_at
-                      ).toLocaleString(
-                        "es-ES"
-                      )}
+                      ${
+                        new Date(
+                          row.created_at
+                        ).toLocaleString(
+                          "es-ES"
+                        )
+                      }
                     </small>
 
                   </div>
@@ -1337,7 +1488,12 @@
     `;
   }
 
+  /* =========================================================
+     AJUSTES
+     ========================================================= */
+
   async function renderSettings() {
+
     if (!currentUser) {
       return;
     }
@@ -1359,11 +1515,24 @@
     const settings =
       result.data ||
       {
-        display_name:"",
-        favorite_position:"",
-        language:"es",
-        notifications_enabled:true
+        display_name:
+          "",
+
+        favorite_position:
+          "",
+
+        language:
+          "es",
+
+        notifications_enabled:
+          true
       };
+
+    $("fsm6Title").textContent =
+      "⚙️ Ajustes";
+
+    $("fsm6Sub").textContent =
+      "Personaliza tu experiencia.";
 
     $("fsm6Body").innerHTML = `
       <div class="fsm6-card">
@@ -1374,33 +1543,38 @@
 
         <div class="fsm6-form">
 
-          <label style="
-            color:#929caf;
-            font-size:11px
-          ">
+          <label
+            style="
+              color:#929caf;
+              font-size:11px
+            "
+          >
             Nombre visible
           </label>
 
           <input
             id="fsm6DisplayName"
+            maxlength="40"
             value="${escapeAttr(
               settings.display_name ||
               ""
             )}"
-            maxlength="40"
             placeholder="Tu nombre"
           >
 
-          <label style="
-            color:#929caf;
-            font-size:11px
-          ">
+          <label
+            style="
+              color:#929caf;
+              font-size:11px
+            "
+          >
             Posición favorita
           </label>
 
           <select
             id="fsm6Position"
           >
+
             ${[
               "",
               "GK",
@@ -1436,18 +1610,22 @@
                   `
               )
               .join("")}
+
           </select>
 
-          <label style="
-            color:#929caf;
-            font-size:11px
-          ">
+          <label
+            style="
+              color:#929caf;
+              font-size:11px
+            "
+          >
             Idioma
           </label>
 
           <select
             id="fsm6Language"
           >
+
             <option
               value="es"
               ${
@@ -1471,15 +1649,18 @@
             >
               English
             </option>
+
           </select>
 
-          <label style="
-            color:#fff;
-            display:flex;
-            gap:8px;
-            align-items:center;
-            font-size:12px;
-          ">
+          <label
+            style="
+              color:#fff;
+              display:flex;
+              gap:8px;
+              align-items:center;
+              font-size:12px
+            "
+          >
 
             <input
               id="fsm6Notifications"
@@ -1507,19 +1688,6 @@
         </div>
 
       </div>
-
-      <div class="fsm6-card">
-
-        <h3>
-          🔐 Seguridad
-        </h3>
-
-        <p>
-          Nunca compartas tu contraseña, códigos
-          de confirmación ni claves privadas.
-        </p>
-
-      </div>
     `;
 
     $("fsm6SaveSettings").onclick =
@@ -1527,39 +1695,41 @@
   }
 
   async function saveSettings() {
-    const payload = {
-      user_id:
-        currentUser.id,
 
-      display_name:
-        $("fsm6DisplayName")
-          .value
-          .trim(),
-
-      favorite_position:
-        $("fsm6Position")
-          .value,
-
-      language:
-        $("fsm6Language")
-          .value,
-
-      notifications_enabled:
-        $("fsm6Notifications")
-          .checked
-    };
+    if (!currentUser) {
+      return;
+    }
 
     const result =
       await sb
         .from(
           "user_settings"
         )
-        .upsert(
-          payload
-        );
+        .upsert({
+          user_id:
+            currentUser.id,
+
+          display_name:
+            $("fsm6DisplayName")
+              .value
+              .trim(),
+
+          favorite_position:
+            $("fsm6Position")
+              .value,
+
+          language:
+            $("fsm6Language")
+              .value,
+
+          notifications_enabled:
+            $("fsm6Notifications")
+              .checked
+        });
 
     if (result.error) {
       console.error(
+        "FSM6 settings:",
         result.error
       );
 
@@ -1575,7 +1745,12 @@
     );
   }
 
+  /* =========================================================
+     ALERTAS
+     ========================================================= */
+
   async function renderAlerts() {
+
     if (!currentUser) {
       return;
     }
@@ -1595,19 +1770,36 @@
         .order(
           "created_at",
           {
-            ascending:false
+            ascending:
+              false
           }
         );
 
-    currentAlerts =
+    if (result.error) {
+      $("fsm6Body").innerHTML = `
+        <div class="fsm6-empty">
+          No se pudieron cargar las alertas.
+        </div>
+      `;
+
+      return;
+    }
+
+    const alerts =
       result.data ||
       [];
+
+    $("fsm6Title").textContent =
+      "🔔 Alertas";
+
+    $("fsm6Sub").textContent =
+      "Avisos de precio que has creado.";
 
     $("fsm6Body").innerHTML = `
       <div class="fsm6-card">
 
         <h3>
-          🔔 Nueva alerta
+          🔔 Crear alerta
         </h3>
 
         <div class="fsm6-form">
@@ -1615,6 +1807,7 @@
           <select
             id="fsm6AlertPlayer"
           >
+
             <option value="">
               Seleccionar jugador...
             </option>
@@ -1632,23 +1825,30 @@
                               player.id
                             )}"
                           >
-                            ${escapeHtml(
-                              player.name
-                            )}
+                            ${
+                              escapeHtml(
+                                player.name
+                              )
+                            }
                             ·
-                            ${escapeHtml(
-                              player.pos
-                            )}
+                            ${
+                              escapeHtml(
+                                player.pos
+                              )
+                            }
                             · OVR
-                            ${escapeHtml(
-                              player.ovr
-                            )}
+                            ${
+                              escapeHtml(
+                                player.ovr
+                              )
+                            }
                           </option>
                         `
                     )
                     .join("")
                 : ""
             }
+
           </select>
 
           <input
@@ -1661,13 +1861,15 @@
           <select
             id="fsm6AlertCondition"
           >
+
             <option value="below">
-              Avisar cuando sea igual o menor
+              Igual o menor
             </option>
 
             <option value="above">
-              Avisar cuando sea igual o mayor
+              Igual o mayor
             </option>
+
           </select>
 
           <button
@@ -1682,67 +1884,77 @@
 
       </div>
 
-      <div class="fsm6-card">
+      <div
+        class="fsm6-card"
+        style="margin-top:12px"
+      >
 
         <h3>
           📋 Mis alertas
         </h3>
 
         ${
-          currentAlerts.length
+          alerts.length
             ? `
               <div class="fsm6-list">
 
-                ${currentAlerts
-                  .map(
-                    (alert) =>
-                      `
-                        <div class="fsm6-list-item">
+                ${
+                  alerts
+                    .map(
+                      (alert) =>
+                        `
+                          <div
+                            class="fsm6-list-item"
+                          >
 
-                          <div>
+                            <div>
 
-                            <strong>
-                              ${escapeHtml(
-                                alert.players?.name ||
-                                "Jugador"
-                              )}
-                            </strong>
+                              <strong>
+                                ${
+                                  escapeHtml(
+                                    alert.players?.name ||
+                                    "Jugador"
+                                  )
+                                }
+                              </strong>
 
-                            <small>
-                              ${
-                                alert.condition ===
-                                "below"
-                                  ? "≤"
-                                  : "≥"
-                              }
+                              <small>
+                                ${
+                                  alert.condition ===
+                                  "below"
+                                    ? "≤"
+                                    : "≥"
+                                }
+                                ${
+                                  escapeHtml(
+                                    alert.target_price
+                                  )
+                                }
+                              </small>
 
-                              ${escapeHtml(
-                                alert.target_price
-                              )}
-                            </small>
+                            </div>
+
+                            <button
+                              class="fsm6-btn danger"
+                              data-delete-alert="${escapeAttr(
+                                alert.id
+                              )}"
+                              type="button"
+                            >
+                              Eliminar
+                            </button>
 
                           </div>
-
-                          <button
-                            class="fsm6-btn danger"
-                            data-delete-alert="${escapeAttr(
-                              alert.id
-                            )}"
-                            type="button"
-                          >
-                            Eliminar
-                          </button>
-
-                        </div>
-                      `
-                  )
-                  .join("")}
+                        `
+                    )
+                    .join("")
+                }
 
               </div>
             `
             : `
               <div class="fsm6-empty">
-                Todavía no tienes alertas.
+                No tienes alertas todavía.
               </div>
             `
         }
@@ -1771,6 +1983,11 @@
   }
 
   async function createAlert() {
+
+    if (!currentUser) {
+      return;
+    }
+
     const playerId =
       Number(
         $("fsm6AlertPlayer")
@@ -1791,6 +2008,7 @@
       !playerId ||
       !targetPrice
     ) {
+
       toast(
         "Selecciona jugador y precio."
       );
@@ -1821,6 +2039,7 @@
 
     if (result.error) {
       console.error(
+        "FSM6 alert:",
         result.error
       );
 
@@ -1841,6 +2060,11 @@
   async function deleteAlert(
     id
   ) {
+
+    if (!currentUser) {
+      return;
+    }
+
     const result =
       await sb
         .from(
@@ -1871,7 +2095,12 @@
     await renderAlerts();
   }
 
+  /* =========================================================
+     SOPORTE
+     ========================================================= */
+
   async function renderTickets() {
+
     if (!currentUser) {
       return;
     }
@@ -1882,7 +2111,7 @@
           "support_tickets"
         )
         .select(
-          "id,subject,status,priority,category,created_at,updated_at"
+          "id,subject,status,created_at"
         )
         .eq(
           "user_id",
@@ -1891,18 +2120,35 @@
         .order(
           "created_at",
           {
-            ascending:false
+            ascending:
+              false
           }
         )
         .limit(
           50
         );
 
-    const tickets =
+    if (result.error) {
+      $("fsm6Body").innerHTML = `
+        <div class="fsm6-empty">
+          No se pudieron cargar las incidencias.
+        </div>
+      `;
+
+      return;
+    }
+
+    const rows =
       result.data ||
       [];
 
-    if (!tickets.length) {
+    $("fsm6Title").textContent =
+      "🎫 Mis incidencias";
+
+    $("fsm6Sub").textContent =
+      "Historial de soporte.";
+
+    if (!rows.length) {
       $("fsm6Body").innerHTML = `
         <div class="fsm6-empty">
 
@@ -1910,13 +2156,15 @@
             🎫
           </div>
 
-          <h3 style="color:#fff">
+          <h3
+            style="color:#fff"
+          >
             No tienes incidencias
           </h3>
 
           <p>
-            Cuando envíes un problema desde el chat
-            aparecerá aquí.
+            Las incidencias que envíes desde
+            el chat de soporte aparecerán aquí.
           </p>
 
         </div>
@@ -1928,278 +2176,67 @@
     $("fsm6Body").innerHTML = `
       <div class="fsm6-list">
 
-        ${tickets
-          .map(
-            (ticket) =>
-              `
-                <div class="fsm6-list-item">
+        ${
+          rows
+            .map(
+              (ticket) =>
+                `
+                  <div
+                    class="fsm6-list-item"
+                  >
 
-                  <div>
+                    <div>
 
-                    <strong>
-                      ${escapeHtml(
-                        ticket.subject
-                      )}
-                    </strong>
+                      <strong>
+                        ${
+                          escapeHtml(
+                            ticket.subject
+                          )
+                        }
+                      </strong>
 
-                    <small>
-                      ${escapeHtml(
-                        ticket.status ||
-                        "open"
-                      )}
+                      <small>
+                        ${
+                          escapeHtml(
+                            ticket.status ||
+                            "open"
+                          )
+                        }
 
-                      ·
+                        ·
 
-                      ${
-                        ticket.priority
-                          ? escapeHtml(
-                              ticket.priority
-                            )
-                          : "normal"
-                      }
+                        ${
+                          new Date(
+                            ticket.created_at
+                          ).toLocaleString(
+                            "es-ES"
+                          )
+                        }
+                      </small>
 
-                      ·
-
-                      ${new Date(
-                        ticket.created_at
-                      ).toLocaleString(
-                        "es-ES"
-                      )}
-                    </small>
+                    </div>
 
                   </div>
-
-                </div>
-              `
-          )
-          .join("")}
+                `
+            )
+            .join("")
+        }
 
       </div>
     `;
   }
 
-  function installFetchRecorder() {
-    if (
-      fetchRecorderInstalled
-    ) {
-      return;
-    }
-
-    fetchRecorderInstalled =
-      true;
-
-    const originalFetch =
-      window.fetch.bind(
-        window
-      );
-
-    window.fetch =
-      async (...args) => {
-
-        const response =
-          await originalFetch(
-            ...args
-          );
-
-        try {
-
-          const url =
-            typeof args[0] ===
-            "string"
-              ? args[0]
-              : args[0]?.url ||
-                "";
-
-          if (
-            url.includes(
-              "/functions/v1/fsm-ai-secure"
-            ) &&
-            response.ok &&
-            currentUser
-          ) {
-
-            const request =
-              parseFetchBody(
-                args[1]
-              );
-
-            const copy =
-              response.clone();
-
-            copy
-              .json()
-              .then(
-                async (
-                  payload
-                ) => {
-
-                  if (
-                    !payload?.ok
-                  ) {
-                    return;
-                  }
-
-                  try {
-
-                    await sb
-                      .from(
-                        "ai_analysis_history"
-                      )
-                      .insert({
-                        user_id:
-                          currentUser.id,
-
-                        request:
-                          sanitizeRequest(
-                            request
-                          ),
-
-                        result:
-                          payload.result ||
-                          {}
-                      });
-
-                  } catch (
-                    error
-                  ) {
-                    console.warn(
-                      "FSM: no se pudo guardar historial IA",
-                      error
-                    );
-                  }
-                }
-              )
-              .catch(
-                () => {}
-              );
-          }
-
-        } catch (
-          error
-        ) {
-          console.warn(
-            "FSM recorder:",
-            error
-          );
-        }
-
-        return response;
-      };
-  }
-
-  function parseFetchBody(
-    options
-  ) {
-    try {
-
-      if (
-        !options?.body
-      ) {
-        return {};
-      }
-
-      if (
-        typeof options.body !==
-        "string"
-      ) {
-        return {};
-      }
-
-      return JSON.parse(
-        options.body
-      );
-
-    } catch (
-      error
-    ) {
-      return {};
-    }
-  }
-
-  function sanitizeRequest(
-    request
-  ) {
-    if (!request) {
-      return {};
-    }
-
-    return {
-      budget:
-        request.budget ??
-        null,
-
-      position:
-        request.position ??
-        null,
-
-      priority:
-        request.priority ??
-        null
-    };
-  }
+  /* =========================================================
+     SECCIÓN
+     ========================================================= */
 
   async function renderSection(
     section
   ) {
-    selectedSection =
-      section;
 
-    document
-      .querySelectorAll(
-        ".fsm6-menu button"
-      )
-      .forEach(
-        (button) => {
-
-          button.classList.toggle(
-            "active",
-            button.dataset.section ===
-              section
-          );
-        }
-      );
-
-    const titles = {
-      overview: [
-        "🏠 Mi resumen",
-        "Tu actividad y estado de FSM."
-      ],
-
-      favorites: [
-        "⭐ Mis favoritos",
-        "Jugadores que has guardado."
-      ],
-
-      history: [
-        "🧠 Historial IA",
-        "Tus análisis anteriores."
-      ],
-
-      alerts: [
-        "🔔 Alertas de mercado",
-        "Avisos de precio que has creado."
-      ],
-
-      tickets: [
-        "🎫 Mis incidencias",
-        "Historial de soporte."
-      ],
-
-      settings: [
-        "⚙️ Ajustes",
-        "Personaliza tu experiencia."
-      ]
-    };
-
-    const info =
-      titles[section] ||
-      titles.overview;
-
-    $("fsm6Title").textContent =
-      info[0];
-
-    $("fsm6Sub").textContent =
-      info[1];
+    if (!currentUser) {
+      return;
+    }
 
     if (
       section ===
@@ -2237,19 +2274,26 @@
     ) {
       await renderSettings();
     }
+
+    document
+      .querySelectorAll(
+        ".fsm6-menu button"
+      )
+      .forEach(
+        (button) => {
+
+          button.classList.toggle(
+            "active",
+            button.dataset.section ===
+              section
+          );
+        }
+      );
   }
 
-  async function loadUserData() {
-    await loadUser();
-
-    if (!currentUser) {
-      return;
-    }
-
-    await loadFavoriteIds();
-
-    refreshFavoriteButtons();
-  }
+  /* =========================================================
+     SEGURIDAD
+     ========================================================= */
 
   function escapeHtml(
     value
@@ -2287,10 +2331,15 @@
     );
   }
 
+  /* =========================================================
+     INICIO
+     ========================================================= */
+
   async function init() {
+
     if (!sb) {
-      console.error(
-        "FSM Fase 6: Supabase no disponible."
+      console.warn(
+        "FSM6: Supabase no disponible."
       );
 
       return;
@@ -2299,12 +2348,15 @@
     addStyles();
     addToast();
     createPanel();
-    addOpenButton();
 
     await loadUser();
 
-    installFetchRecorder();
+    // El botón puede aparecer aunque no haya sesión;
+    // al pulsarlo se comprobará la sesión.
+    addOpenButton();
 
+    // Muy importante:
+    // no hacemos ningún cambio en auth.
     sb.auth.onAuthStateChange(
       () => {
 
@@ -2312,7 +2364,9 @@
           async () => {
 
             await loadUser();
+
             await loadFavoriteIds();
+
             refreshFavoriteButtons();
 
           },
@@ -2321,6 +2375,8 @@
       }
     );
 
+    // Observa las cartas por si players.js/app.js
+    // las vuelve a construir.
     const observer =
       new MutationObserver(
         () => {
@@ -2337,6 +2393,8 @@
           true
       }
     );
+
+    refreshFavoriteButtons();
   }
 
   if (
