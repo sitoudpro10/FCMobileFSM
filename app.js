@@ -776,6 +776,9 @@ function addImageStyles() {
       }
     );
   }
+  requestVisibleImages(
+  visible
+);
 
   function filterPlayers(query) {
     state.searchQuery =
