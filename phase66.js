@@ -1038,7 +1038,7 @@
                             fsm66-msg
                             ${
                               message.sender_type ===
-                              "admin"
+                              "support"
                                 ? "admin"
                                 : "user"
                             }
@@ -1048,7 +1048,7 @@
                           <b>
                             ${
                               message.sender_type ===
-                              "admin"
+                              "support"
                                 ? "🛡️ Soporte FSM"
                                 : "👤 Usuario"
                             }
@@ -1205,7 +1205,7 @@
             text,
 
           sender_type:
-            "admin"
+            "support"
         });
 
     if (result.error) {
@@ -1288,7 +1288,9 @@
           100
         );
 
-    if (result.error) {
+    if (
+      result.error
+    ) {
 
       $("fsm66Body").innerHTML = `
         <div class="fsm66-empty">
