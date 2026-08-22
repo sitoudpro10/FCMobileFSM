@@ -1,7 +1,21 @@
 (() => {
   "use strict";
 
-  const $ = (id) => document.getElementById(id);
+  /*
+    FC MOBILE FSM — APP.JS OPTIMIZADO
+    --------------------------------
+    Objetivo principal:
+    - Mantener miles de jugadores disponibles.
+    - Renderizar solo una pequeña ventana de resultados.
+    - Evitar crear 10.000+ tarjetas HTML a la vez.
+    - Evitar crear 10.000+ <option> en los selects.
+    - Búsqueda con debounce.
+    - "Cargar más" para ampliar resultados.
+    - Mantener Auth, IA, Comparador, Plantilla y Mercado.
+  */
+
+  const $ = (id) =>
+    document.getElementById(id);
 
   const SUPABASE_URL =
     "https://jshevgjyweoianpbbjdl.supabase.co";
@@ -21,17 +35,29 @@
       SUPABASE_PUBLISHABLE_KEY
     );
 
+  const CONFIG = {
+    initialRender: 40,
+    renderStep: 40,
+    searchRenderLimit: 80,
+    pickerLimit: 150,
+    searchDebounce: 140,
+    playerIndexChunk: 1500
+  };
+
   const state = {
-    players: Array.isArray(window.FSM_PLAYERS)
-      ? window.FSM_PLAYERS
-      : [],
+    players: [],
     uses: 0,
     pro: false,
-    squad: []
+    squad: Array(11).fill(""),
+    renderedCount: CONFIG.initialRender,
+    filteredPlayers: [],
+    searchIndex: [],
+    searchQuery: "",
+    searchTimer: null,
+    aiBusy: false
   };
 
   let currentUser = null;
-  let searchQuery = "";
 
   function esc(value) {
     return String(value ?? "")
@@ -45,6 +71,10 @@
   function money(value) {
     const n = Number(value) || 0;
 
+    if (!n) {
+      return "—";
+    }
+
     if (n >= 1e9) {
       return `${(n / 1e9).toFixed(1)}B`;
     }
@@ -53,7 +83,9 @@
       return `${Math.round(n / 1e6)}M`;
     }
 
-    return new Intl.NumberFormat("es-ES").format(n);
+    return new Intl.NumberFormat(
+      "es-ES"
+    ).format(n);
   }
 
   function toast(message) {
@@ -68,9 +100,10 @@
 
     clearTimeout(element._timer);
 
-    element._timer = setTimeout(() => {
-      element.classList.remove("show");
-    }, 3000);
+    element._timer =
+      setTimeout(() => {
+        element.classList.remove("show");
+      }, 3000);
   }
 
   function go(id) {
@@ -101,14 +134,60 @@
       top: 0,
       behavior: "smooth"
     });
+
+    if (id === "players") {
+      renderPlayers();
+    }
   }
 
   function getPlayers() {
-    if (Array.isArray(window.FSM_PLAYERS)) {
-      return window.FSM_PLAYERS;
-    }
+    return Array.isArray(window.FSM_PLAYERS)
+      ? window.FSM_PLAYERS
+      : state.players;
+  }
 
-    return state.players;
+  function normalizePlayer(player) {
+    return {
+      ...player,
+      id: player.id,
+      name: String(player.name || "Jugador"),
+      club: String(player.club || "Sin club"),
+      league: String(player.league || ""),
+      country: String(player.country || ""),
+      pos: String(player.pos || ""),
+      program: String(player.program || ""),
+      ovr: Number(player.ovr || 0),
+      pace: Number(player.pace || 0),
+      shoot: Number(player.shoot || 0),
+      pass: Number(player.pass || 0),
+      dribble: Number(player.dribble || 0),
+      def: Number(player.def || 0),
+      phys: Number(player.phys || 0),
+      price: Number(player.price || 0)
+    };
+  }
+
+  function buildSearchIndex() {
+    const source = getPlayers();
+
+    state.players =
+      Array.isArray(source)
+        ? source.map(normalizePlayer)
+        : [];
+
+    state.searchIndex =
+      state.players.map((player, index) => ({
+        index,
+        text:
+          `${player.name} ${player.club} ${player.league} ${player.country} ${player.pos} ${player.program}`
+            .toLowerCase()
+      }));
+
+    state.filteredPlayers =
+      state.players;
+
+    state.renderedCount =
+      CONFIG.initialRender;
   }
 
   function card(player) {
@@ -116,8 +195,15 @@
       <article class="card">
 
         <div class="art">
-          <div class="ovr">${esc(player.ovr)}</div>
-          <div class="pos">${esc(player.pos)}</div>
+
+          <div class="ovr">
+            ${esc(player.ovr || "—")}
+          </div>
+
+          <div class="pos">
+            ${esc(player.pos)}
+          </div>
+
           <div class="crest">
             ${esc(
               String(player.club || "")
@@ -125,27 +211,51 @@
                 .toUpperCase()
             )}
           </div>
+
           <div class="face">
-            ${esc(player.country || "")}
+            ${esc(player.country || "⚽")}
           </div>
+
           <div class="flag">
             ${esc(player.country || "")}
           </div>
+
         </div>
 
-        <h3>${esc(player.name)}</h3>
+        <h3>
+          ${esc(player.name)}
+        </h3>
 
         <p class="sub">
           ${esc(player.club || "Sin club")}
         </p>
 
         <div class="stats">
-          <span>RIT ${esc(player.pace)}</span>
-          <span>TIR ${esc(player.shoot)}</span>
-          <span>PAS ${esc(player.pass)}</span>
-          <span>REG ${esc(player.dribble)}</span>
-          <span>DEF ${esc(player.def)}</span>
-          <span>FIS ${esc(player.phys)}</span>
+
+          <span>
+            RIT ${esc(player.pace)}
+          </span>
+
+          <span>
+            TIR ${esc(player.shoot)}
+          </span>
+
+          <span>
+            PAS ${esc(player.pass)}
+          </span>
+
+          <span>
+            REG ${esc(player.dribble)}
+          </span>
+
+          <span>
+            DEF ${esc(player.def)}
+          </span>
+
+          <span>
+            FIS ${esc(player.phys)}
+          </span>
+
         </div>
 
         <div class="price">
@@ -156,14 +266,247 @@
     `;
   }
 
-  function playerOptions() {
+  function renderFeatured() {
+    const element = $("featured");
+
+    if (!element) {
+      return;
+    }
+
+    const featured =
+      state.players
+        .slice()
+        .sort(
+          (a, b) =>
+            Number(b.ovr) -
+            Number(a.ovr)
+        )
+        .slice(0, 5);
+
+    element.innerHTML =
+      featured
+        .map(card)
+        .join("");
+  }
+
+  function renderPlayers() {
+    const element =
+      $("allPlayers");
+
+    if (!element) {
+      return;
+    }
+
+    const query =
+      state.searchQuery.trim();
+
+    if (!query) {
+      state.renderedCount =
+        Math.max(
+          state.renderedCount,
+          CONFIG.initialRender
+        );
+    }
+
+    const visibleCount =
+      query
+        ? Math.min(
+            state.renderedCount,
+            CONFIG.searchRenderLimit
+          )
+        : state.renderedCount;
+
+    const visible =
+      state.filteredPlayers
+        .slice(
+          0,
+          visibleCount
+        );
+
+    const html =
+      visible
+        .map(card)
+        .join("");
+
+    const remaining =
+      state.filteredPlayers.length -
+      visible.length;
+
+    const footer =
+      remaining > 0
+        ? `
+          <div
+            style="
+              width:100%;
+              padding:16px 0;
+              display:flex;
+              flex-direction:column;
+              gap:8px;
+              align-items:center;
+            "
+          >
+
+            <small class="muted">
+              Mostrando
+              ${visible.length}
+              de
+              ${state.filteredPlayers.length}
+            </small>
+
+            <button
+              id="loadMorePlayers"
+              class="btn"
+              type="button"
+            >
+              Cargar más
+            </button>
+
+          </div>
+        `
+        : `
+          <div
+            style="
+              width:100%;
+              padding:16px 0;
+              text-align:center;
+            "
+          >
+            <small class="muted">
+              ${visible.length}
+              resultado(s)
+            </small>
+          </div>
+        `;
+
+    element.innerHTML =
+      html ||
+      `
+        <div class="notice">
+          No hay resultados.
+        </div>
+      `;
+
+    element.insertAdjacentHTML(
+      "beforeend",
+      footer
+    );
+
+    $("loadMorePlayers")?.addEventListener(
+      "click",
+      () => {
+        state.renderedCount +=
+          CONFIG.renderStep;
+
+        requestAnimationFrame(
+          renderPlayers
+        );
+      }
+    );
+  }
+
+  function filterPlayers(query) {
+    state.searchQuery =
+      query
+        .trim()
+        .toLowerCase();
+
+    if (!state.searchQuery) {
+      state.filteredPlayers =
+        state.players;
+
+      state.renderedCount =
+        CONFIG.initialRender;
+
+      renderPlayers();
+      return;
+    }
+
+    const results = [];
+
+    for (
+      let i = 0;
+      i < state.searchIndex.length;
+      i++
+    ) {
+      const entry =
+        state.searchIndex[i];
+
+      if (
+        entry.text.includes(
+          state.searchQuery
+        )
+      ) {
+        results.push(
+          state.players[
+            entry.index
+          ]
+        );
+      }
+    }
+
+    state.filteredPlayers =
+      results;
+
+    state.renderedCount =
+      Math.min(
+        CONFIG.initialRender,
+        results.length
+      );
+
+    renderPlayers();
+  }
+
+  function handlePlayerSearch(value) {
+    clearTimeout(
+      state.searchTimer
+    );
+
+    state.searchTimer =
+      setTimeout(() => {
+        filterPlayers(value);
+      }, CONFIG.searchDebounce);
+  }
+
+  function topPickerPlayers() {
+    return state.players
+      .slice()
+      .sort(
+        (a, b) =>
+          Number(b.ovr) -
+          Number(a.ovr)
+      )
+      .slice(
+        0,
+        CONFIG.pickerLimit
+      );
+  }
+
+  function playerOptions(
+    includeBlank = true
+  ) {
+    const players =
+      topPickerPlayers();
+
+    const first =
+      includeBlank
+        ? `<option value="">Seleccionar...</option>`
+        : "";
+
     return (
-      `<option value="">Seleccionar...</option>` +
-      getPlayers()
+      first +
+      players
         .map(
           (player) => `
-            <option value="${esc(player.id)}">
-              ${esc(player.name)} · ${esc(player.pos)}
+            <option value="${esc(
+              player.id
+            )}">
+              ${esc(
+                player.name
+              )} · ${esc(
+                player.pos
+              )} · GRL ${esc(
+                player.ovr
+              )}
             </option>
           `
         )
@@ -171,47 +514,9 @@
     );
   }
 
-  function renderPlayers() {
-    state.players = getPlayers();
-
-    const query =
-      searchQuery
-        .trim()
-        .toLowerCase();
-
-    const filtered = query
-      ? state.players.filter((player) =>
-          `
-            ${player.name || ""}
-            ${player.club || ""}
-            ${player.pos || ""}
-            ${player.league || ""}
-            ${player.program || ""}
-          `
-            .toLowerCase()
-            .includes(query)
-        )
-      : state.players;
-
-    if ($("featured")) {
-      $("featured").innerHTML =
-        state.players
-          .slice(0, 5)
-          .map(card)
-          .join("");
-    }
-
-    if ($("allPlayers")) {
-      $("allPlayers").innerHTML =
-        filtered.map(card).join("") ||
-        `
-          <div class="notice">
-            No hay resultados.
-          </div>
-        `;
-    }
-
-    const options = playerOptions();
+  function refreshPickers() {
+    const options =
+      playerOptions();
 
     [
       "playerA",
@@ -220,16 +525,43 @@
     ].forEach((id) => {
       const element = $(id);
 
-      if (element) {
-        element.innerHTML = options;
+      if (!element) {
+        return;
+      }
+
+      const previous =
+        element.value;
+
+      element.innerHTML =
+        options;
+
+      if (
+        [...element.options]
+          .some(
+            (option) =>
+              option.value ===
+              previous
+          )
+      ) {
+        element.value =
+          previous;
       }
     });
+  }
+
+  function updateCatalog() {
+    buildSearchIndex();
+    renderFeatured();
+    renderPlayers();
+    refreshPickers();
   }
 
   function updateAuthUI() {
     if ($("authBox")) {
       $("authBox").style.display =
-        currentUser ? "none" : "";
+        currentUser
+          ? "none"
+          : "";
     }
 
     if ($("loggedBox")) {
@@ -297,7 +629,8 @@
   }
 
   async function loadProfile(user) {
-    currentUser = user || null;
+    currentUser =
+      user || null;
 
     if (!currentUser) {
       state.uses = 0;
@@ -307,11 +640,25 @@
     }
 
     try {
-      const { data, error } =
+      if (!supabaseClient) {
+        throw new Error(
+          "Supabase unavailable"
+        );
+      }
+
+      const {
+        data,
+        error
+      } =
         await supabaseClient
           .from("profiles")
-          .select("free_uses,is_pro")
-          .eq("id", currentUser.id)
+          .select(
+            "free_uses,is_pro"
+          )
+          .eq(
+            "id",
+            currentUser.id
+          )
           .maybeSingle();
 
       if (error) {
@@ -319,10 +666,15 @@
       }
 
       state.uses =
-        Number(data?.free_uses ?? 0);
+        Number(
+          data?.free_uses ??
+          0
+        );
 
       state.pro =
-        Boolean(data?.is_pro);
+        Boolean(
+          data?.is_pro
+        );
 
     } catch (error) {
       console.error(
@@ -337,33 +689,57 @@
     updateAuthUI();
   }
 
-  function friendlyAuthError(message) {
+  function friendlyAuthError(
+    message
+  ) {
     const text =
-      String(message || "")
+      String(
+        message || ""
+      )
         .toLowerCase();
 
-    if (text.includes("rate limit")) {
+    if (
+      text.includes(
+        "rate limit"
+      )
+    ) {
       return "Supabase ha limitado temporalmente los correos. Espera unos minutos.";
     }
 
-    if (text.includes("email not confirmed")) {
+    if (
+      text.includes(
+        "email not confirmed"
+      )
+    ) {
       return "Tu correo todavía no está confirmado. Revisa tu email.";
     }
 
-    if (text.includes("invalid login credentials")) {
+    if (
+      text.includes(
+        "invalid login credentials"
+      )
+    ) {
       return "El correo o la contraseña no son correctos.";
     }
 
     if (
-      text.includes("already registered") ||
-      text.includes("user already exists") ||
-      text.includes("already been registered")
+      text.includes(
+        "already registered"
+      ) ||
+      text.includes(
+        "user already exists"
+      ) ||
+      text.includes(
+        "already been registered"
+      )
     ) {
       return "Ese correo ya tiene una cuenta. Pulsa ENTRAR.";
     }
 
     if (
-      text.includes("password should be at least")
+      text.includes(
+        "password should be at least"
+      )
     ) {
       return "La contraseña debe tener al menos 6 caracteres.";
     }
@@ -372,6 +748,75 @@
       message ||
       "No se pudo completar la operación."
     );
+  }
+
+  function ensureAuthButtons() {
+    const box =
+      $("authBox");
+
+    if (!box) {
+      return;
+    }
+
+    const oldButton =
+      $("authSubmit");
+
+    if (oldButton) {
+      oldButton.style.display =
+        "none";
+    }
+
+    if ($("authLogin") && $("authCreate")) {
+      return;
+    }
+
+    const container =
+      document.createElement(
+        "div"
+      );
+
+    container.id =
+      "fsmAuthButtons";
+
+    container.style.display =
+      "grid";
+
+    container.style.gridTemplateColumns =
+      "1fr 1fr";
+
+    container.style.gap =
+      "8px";
+
+    container.style.marginTop =
+      "12px";
+
+    container.innerHTML = `
+      <button
+        id="authLogin"
+        class="btn primary"
+        type="button"
+      >
+        ENTRAR
+      </button>
+
+      <button
+        id="authCreate"
+        class="btn"
+        type="button"
+      >
+        CREAR CUENTA
+      </button>
+    `;
+
+    box.appendChild(
+      container
+    );
+
+    $("authLogin").onclick =
+      loginAccount;
+
+    $("authCreate").onclick =
+      registerAccount;
   }
 
   async function registerAccount() {
@@ -400,7 +845,10 @@
       return;
     }
 
-    if (password.length < 6) {
+    if (
+      password.length <
+      6
+    ) {
       toast(
         "La contraseña debe tener al menos 6 caracteres."
       );
@@ -408,22 +856,28 @@
     }
 
     if (button) {
-      button.disabled = true;
+      button.disabled =
+        true;
       button.textContent =
         "CREANDO...";
     }
 
     try {
       const result =
-        await supabaseClient.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: SITE_URL
+        await supabaseClient.auth.signUp(
+          {
+            email,
+            password,
+            options: {
+              emailRedirectTo:
+                SITE_URL
+            }
           }
-        });
+        );
 
-      if (result.error) {
+      if (
+        result.error
+      ) {
         toast(
           friendlyAuthError(
             result.error.message
@@ -463,7 +917,9 @@
 
     } finally {
       if (button) {
-        button.disabled = false;
+        button.disabled =
+          false;
+
         button.textContent =
           "CREAR CUENTA";
       }
@@ -497,20 +953,24 @@
     }
 
     if (button) {
-      button.disabled = true;
+      button.disabled =
+        true;
       button.textContent =
         "ENTRANDO...";
     }
 
     try {
       const result =
-        await supabaseClient.auth
-          .signInWithPassword({
+        await supabaseClient.auth.signInWithPassword(
+          {
             email,
             password
-          });
+          }
+        );
 
-      if (result.error) {
+      if (
+        result.error
+      ) {
         toast(
           friendlyAuthError(
             result.error.message
@@ -541,7 +1001,9 @@
 
     } finally {
       if (button) {
-        button.disabled = false;
+        button.disabled =
+          false;
+
         button.textContent =
           "ENTRAR";
       }
@@ -553,9 +1015,10 @@
       return;
     }
 
-    const { error } =
-      await supabaseClient.auth
-        .signOut();
+    const {
+      error
+    } =
+      await supabaseClient.auth.signOut();
 
     if (error) {
       toast(
@@ -564,7 +1027,9 @@
       return;
     }
 
-    await loadProfile(null);
+    await loadProfile(
+      null
+    );
 
     toast(
       "Sesión cerrada."
@@ -580,7 +1045,9 @@
     const playerA =
       all.find(
         (player) =>
-          String(player.id) ===
+          String(
+            player.id
+          ) ===
           String(
             $("playerA")?.value
           )
@@ -589,7 +1056,9 @@
     const playerB =
       all.find(
         (player) =>
-          String(player.id) ===
+          String(
+            player.id
+          ) ===
           String(
             $("playerB")?.value
           )
@@ -621,30 +1090,41 @@
         <div class="panel">
 
           <h2>
-            ${esc(player.country || "")}
-            ${esc(player.name)}
+            ${esc(
+              player.country || ""
+            )}
+            ${esc(
+              player.name
+            )}
           </h2>
 
           ${rows
             .map(
               ([label, key]) => `
-                <div class="metric">
+                <div
+                  class="metric"
+                >
+
                   <span class="muted">
                     ${label}
                   </span>
 
                   <b>
                     ${esc(
-                      player[key] ?? "-"
+                      player[key] ??
+                      "-"
                     )}
                   </b>
+
                 </div>
               `
             )
             .join("")}
 
           <p class="price">
-            🪙 ${money(player.price)}
+            🪙 ${money(
+              player.price
+            )}
           </p>
 
         </div>
@@ -653,27 +1133,20 @@
     $("compareOut").innerHTML =
       `
         <div class="compare">
-          ${renderBox(playerA)}
-          ${renderBox(playerB)}
+
+          ${renderBox(
+            playerA
+          )}
+
+          ${renderBox(
+            playerB
+          )}
+
         </div>
       `;
   }
 
-  function buildSquad() {
-    const positions = [
-      "gk",
-      "lb",
-      "cb1",
-      "cb2",
-      "rb",
-      "cm1",
-      "cm2",
-      "cam",
-      "lw",
-      "rw",
-      "st"
-    ];
-
+  function renderSquad() {
     const formation =
       $("formation");
 
@@ -681,360 +1154,468 @@
       return;
     }
 
-    formation.innerHTML =
-      positions
+    const positions = [
+      "GK",
+      "LB",
+      "CB",
+      "CB",
+      "RB",
+      "CDM",
+      "CM",
+      "CAM",
+      "LW",
+      "RW",
+      "ST"
+    ];
+
+    const players =
+      topPickerPlayers();
+
+    const options =
+      `
+        <option value="">
+          Seleccionar...
+        </option>
+      ` +
+      players
         .map(
-          (position) => `
-            <div class="spot ${position}">
-
-              <select data-slot>
-                ${playerOptions()}
-              </select>
-
-              <span>
-                ${position.toUpperCase()}
-              </span>
-
-            </div>
+          (player) => `
+            <option value="${esc(
+              player.id
+            )}">
+              ${esc(
+                player.name
+              )} · ${esc(
+                player.pos
+              )} · ${esc(
+                player.ovr
+              )}
+            </option>
           `
         )
         .join("");
 
-    document
-      .querySelectorAll("[data-slot]")
+    formation.innerHTML =
+      `
+        <div
+          class="form2"
+        >
+
+          ${positions
+            .map(
+              (
+                position,
+                index
+              ) => `
+                <div
+                  class="field"
+                >
+
+                  <label>
+                    ${index + 1}.
+                    ${position}
+                  </label>
+
+                  <select
+                    data-squad-index="${index}"
+                  >
+                    ${options}
+                  </select>
+
+                </div>
+              `
+            )
+            .join("")}
+
+        </div>
+      `;
+
+    formation
+      .querySelectorAll(
+        "[data-squad-index]"
+      )
       .forEach(
-        (element, index) => {
-          element.value =
-            state.squad[index] || "";
+        (select) => {
+
+          const index =
+            Number(
+              select.dataset
+                .squadIndex
+            );
+
+          select.value =
+            state.squad[index] ||
+            "";
+
+          select.onchange =
+            () => {
+              state.squad[index] =
+                select.value;
+            };
         }
       );
   }
 
-  function saveSquad() {
-    state.squad =
-      [
-        ...document
-          .querySelectorAll(
-            "[data-slot]"
-          )
-      ].map(
-        (element) =>
-          element.value
+  async function saveSquad() {
+    const ids =
+      state.squad.filter(Boolean);
+
+    if (!currentUser) {
+      toast(
+        "Inicia sesión para guardar y analizar la plantilla."
+      );
+      return;
+    }
+
+    if (
+      ids.length !==
+      11
+    ) {
+      toast(
+        "Selecciona los 11 jugadores."
+      );
+      return;
+    }
+
+    const playerMap =
+      new Map(
+        getPlayers().map(
+          (player) => [
+            String(
+              player.id
+            ),
+            player
+          ]
+        )
       );
 
     const selected =
-      state.squad
+      ids
         .map(
           (id) =>
-            getPlayers().find(
-              (player) =>
-                String(player.id) ===
-                String(id)
+            playerMap.get(
+              String(id)
             )
         )
         .filter(Boolean);
 
-    if (!selected.length) {
-      $("squadSummary").innerHTML =
-        `
-          <div class="notice">
-            Selecciona jugadores antes de analizar.
-          </div>
-        `;
-
+    if (
+      selected.length !==
+      11
+    ) {
+      toast(
+        "No se pudieron identificar todos los jugadores."
+      );
       return;
     }
 
-    const average =
+    const avg = (key) =>
       selected.reduce(
         (sum, player) =>
           sum +
           Number(
-            player.ovr || 0
+            player[key] ||
+            0
           ),
         0
-      ) / selected.length;
-
-    const attack =
-      selected.reduce(
-        (sum, player) =>
-          sum +
-          (
-            (
-              Number(
-                player.pace || 0
-              ) +
-              Number(
-                player.shoot || 0
-              ) +
-              Number(
-                player.dribble || 0
-              )
-            ) / 3
-          ),
-        0
-      ) / selected.length;
-
-    const defense =
-      selected.reduce(
-        (sum, player) =>
-          sum +
-          Number(
-            player.def || 0
-          ),
-        0
-      ) / selected.length;
+      ) /
+      selected.length;
 
     $("squadSummary").innerHTML =
       `
         <div
-          class="pro"
-          style="padding:14px;border-radius:12px"
+          class="notice"
         >
-
-          <h3>
-            🧠 Análisis de plantilla
-          </h3>
-
-          <p>
-            GRL medio:
-            <b>
-              ${average.toFixed(1)}
-            </b>
-          </p>
-
-          <p>
-            Ataque:
-            <b>
-              ${attack.toFixed(1)}
-            </b>
-
-            · Defensa:
-            <b>
-              ${defense.toFixed(1)}
-            </b>
-          </p>
-
-          <p class="muted">
-            ${
-              defense < 75
-                ? "Prioridad: reforzar la defensa."
-                : attack < 82
-                  ? "Prioridad: mejorar el ataque."
-                  : "Plantilla bastante equilibrada."
-            }
-          </p>
-
+          <b>
+            Plantilla guardada
+          </b>
+          · GRL medio:
+          ${avg("ovr").toFixed(1)}
+          · Ataque:
+          ${(
+            (
+              avg("pace") +
+              avg("shoot") +
+              avg("dribble")
+            ) / 3
+          ).toFixed(1)}
+          · Pase:
+          ${avg("pass").toFixed(1)}
+          · Defensa:
+          ${avg("def").toFixed(1)}
+          · Físico:
+          ${avg("phys").toFixed(1)}
         </div>
       `;
+
+    try {
+      await supabaseClient
+        ?.from(
+          "user_settings"
+        )
+        .upsert({
+          user_id:
+            currentUser.id,
+          display_name:
+            currentUser.email || "",
+          favorite_position:
+            "4-3-3"
+        });
+
+      toast(
+        "✅ Plantilla guardada."
+      );
+
+    } catch (error) {
+      console.warn(
+        "FSM squad save:",
+        error
+      );
+    }
   }
 
-  function analyzeMarket() {
-    const player =
-      getPlayers().find(
-        (item) =>
-          String(item.id) ===
-          String(
-            $("marketPlayer")?.value
-          )
-      );
+  function localRecommendation(
+    budget,
+    position,
+    priority
+  ) {
+    const candidates =
+      getPlayers()
+        .filter(
+          (player) =>
+            (!position ||
+              player.pos ===
+                position) &&
+            (!budget ||
+              !player.price ||
+              player.price <=
+                budget)
+        )
+        .slice();
 
-    const value =
-      Number(
-        $("marketPrice")?.value || 0
-      );
+    if (!candidates.length) {
+      return null;
+    }
 
-    if (!player || value <= 0) {
-      $("marketOut").innerHTML =
+    candidates.sort(
+      (a, b) => {
+
+        if (
+          priority ===
+          "ovr"
+        ) {
+          return (
+            b.ovr -
+            a.ovr
+          );
+        }
+
+        if (
+          priority ===
+          "pace"
+        ) {
+          return (
+            b.pace -
+            a.pace
+          );
+        }
+
+        if (
+          priority ===
+          "shoot"
+        ) {
+          return (
+            b.shoot -
+            a.shoot
+          );
+        }
+
+        if (
+          priority ===
+          "dribble"
+        ) {
+          return (
+            b.dribble -
+            a.dribble
+          );
+        }
+
+        if (
+          priority ===
+          "def"
+        ) {
+          return (
+            b.def -
+            a.def
+          );
+        }
+
+        const valueA =
+          (a.ovr * 2) /
+          Math.max(
+            1,
+            a.price ||
+              1
+          );
+
+        const valueB =
+          (b.ovr * 2) /
+          Math.max(
+            1,
+            b.price ||
+              1
+          );
+
+        return (
+          valueB -
+          valueA
+        );
+      }
+    );
+
+    return candidates.slice(
+      0,
+      8
+    );
+  }
+
+  function renderRecommendations(
+    players,
+    title
+  ) {
+    if (!players?.length) {
+      $("results").innerHTML =
         `
           <div class="notice">
-            Selecciona jugador y precio.
+            No encontramos jugadores con esos criterios.
           </div>
         `;
-
       return;
     }
 
-    const ratio =
-      value /
-      Math.max(
-        Number(
-          player.price || 1
-        ),
-        1
-      );
+    $("resultTitle").textContent =
+      title ||
+      "Resultado FSM";
 
-    const label =
-      ratio < 0.9
-        ? "🟢 BUENA COMPRA"
-        : ratio < 1.08
-          ? "🟡 PRECIO NORMAL"
-          : "🔴 CARO";
-
-    $("marketOut").innerHTML =
+    $("results").innerHTML =
       `
-        <div
-          class="pro"
-          style="padding:14px;border-radius:12px"
-        >
+        <div class="cards">
 
-          <h2>
-            ${label}
-          </h2>
-
-          <p>
-            Precio introducido:
-            <b>
-              🪙 ${money(value)}
-            </b>
-          </p>
-
-          <p>
-            Referencia:
-            <b>
-              🪙 ${money(player.price)}
-            </b>
-          </p>
-
-          <p class="muted">
-            El precio de referencia es de demostración
-            hasta conectar la fuente real.
-          </p>
+          ${players
+            .slice(
+              0,
+              8
+            )
+            .map(card)
+            .join("")}
 
         </div>
       `;
   }
 
-  async function recommend() {
+  async function runAI() {
+    if (state.aiBusy) {
+      return;
+    }
+
     if (!currentUser) {
       toast(
         "Inicia sesión para usar FSM IA."
       );
+      return;
+    }
 
-      go("account");
-
+    if (
+      !state.pro &&
+      state.uses <=
+        0
+    ) {
+      toast(
+        "No te quedan análisis gratuitos."
+      );
       return;
     }
 
     const budget =
       Number(
-        $("budget")?.value || 0
+        $("budget")?.value ||
+        0
       );
 
     const position =
-      $("recPos")?.value || "";
+      $("recPos")?.value ||
+      "ST";
 
     const priority =
       $("priority")?.value ||
       "value";
 
+    const local =
+      localRecommendation(
+        budget,
+        position,
+        priority
+      );
+
+    if (local) {
+      renderRecommendations(
+        local,
+        "Recomendación FSM"
+      );
+    }
+
+    state.aiBusy =
+      true;
+
     const button =
       $("recommend");
 
-    if (budget <= 0) {
-      toast(
-        "Escribe un presupuesto válido."
-      );
-
-      return;
-    }
-
     if (button) {
-      button.disabled = true;
+      button.disabled =
+        true;
       button.textContent =
-        "🤖 ANALIZANDO...";
+        "ANALIZANDO...";
     }
 
     try {
-      const { data } =
-        await supabaseClient.auth
-          .getSession();
-
-      const session =
-        data?.session;
-
-      if (!session) {
-        toast(
-          "Tu sesión ha caducado. Inicia sesión otra vez."
+      if (!supabaseClient) {
+        throw new Error(
+          "Supabase no disponible."
         );
+      }
 
-        return;
+      const {
+        data: sessionData
+      } =
+        await supabaseClient.auth.getSession();
+
+      const token =
+        sessionData?.session
+          ?.access_token;
+
+      if (!token) {
+        throw new Error(
+          "Sesión no válida."
+        );
       }
 
       const candidates =
-        getPlayers()
-          .filter(
-            (player) =>
-              Number(
-                player.price
-              ) <= budget &&
-              player.pos === position
-          )
-          .sort(
-            (a, b) => {
-
-              const scoreA =
-                priority === "value"
-                  ? Number(
-                      a.ovr || 0
-                    ) /
-                    Math.max(
-                      Number(
-                        a.price || 1
-                      ),
-                      1
-                    )
-                  : Number(
-                      a[priority] ||
-                      a.ovr ||
-                      0
-                    );
-
-              const scoreB =
-                priority === "value"
-                  ? Number(
-                      b.ovr || 0
-                    ) /
-                    Math.max(
-                      Number(
-                        b.price || 1
-                      ),
-                      1
-                    )
-                  : Number(
-                      b[priority] ||
-                      b.ovr ||
-                      0
-                    );
-
-              return (
-                scoreB -
-                scoreA
-              );
-            }
-          )
-          .slice(0, 11);
-
-      if (!candidates.length) {
-        $("results").innerHTML =
-          `
-            <div class="notice">
-              No hay jugadores que cumplan esos filtros.
-            </div>
-          `;
-
-        return;
-      }
+        local?.slice(
+          0,
+          11
+        ) ||
+        [];
 
       const response =
         await fetch(
           FSM_AI_URL,
           {
-            method: "POST",
+            method:
+              "POST",
 
             headers: {
               Authorization:
-                `Bearer ${session.access_token}`,
+                `Bearer ${token}`,
 
               apikey:
                 SUPABASE_PUBLISHABLE_KEY,
@@ -1045,356 +1626,275 @@
 
             body:
               JSON.stringify({
-                players:
-                  candidates,
-                budget,
+                budget:
+                  budget ||
+                  undefined,
+
                 position,
-                priority
+
+                priority,
+
+                players:
+                  candidates
               })
           }
         );
 
       const payload =
-        await response
-          .json()
-          .catch(
-            () => ({})
-          );
+        await response.json()
+          .catch(() => null);
 
       if (
         !response.ok ||
-        !payload.ok
+        !payload?.ok
       ) {
-        toast(
-          friendlyAuthError(
-            payload.error ||
-              "No se pudo realizar el análisis."
-          )
+        throw new Error(
+          payload?.error ||
+          "FSM IA no pudo completar el análisis."
         );
-
-        return;
       }
-
-      state.uses =
-        Number(
-          payload.usage?.remaining ??
-            state.uses
-        );
-
-      state.pro =
-        Boolean(
-          payload.usage?.pro ??
-            state.pro
-        );
-
-      updateAuthUI();
 
       const result =
-        payload.result || {};
+        payload.result;
 
-      const advice =
-        Array.isArray(
-          result.advice
-        )
-          ? result.advice
-          : [];
+      if (result) {
+        $("results").innerHTML =
+          `
+            <div
+              class="panel"
+            >
 
-      if ($("resultTitle")) {
-        $("resultTitle").textContent =
-          state.pro
-            ? "Resultado FSM PRO"
-            : "Resultado FSM";
+              <h3>
+                🤖 FSM IA
+              </h3>
+
+              <p>
+                Puntuación:
+                <b>
+                  ${esc(
+                    result.score
+                  )}
+                </b>
+              </p>
+
+              <p>
+                Prioridad detectada:
+                <b>
+                  ${esc(
+                    result.priority
+                  )}
+                </b>
+              </p>
+
+              ${
+                Array.isArray(
+                  result.advice
+                )
+                  ? `
+                      <ul>
+                        ${result.advice
+                          .map(
+                            (text) =>
+                              `<li>${esc(
+                                text
+                              )}</li>`
+                          )
+                          .join("")}
+                      </ul>
+                    `
+                  : ""
+              }
+
+            </div>
+
+            <div
+              class="cards"
+              style="margin-top:12px"
+            >
+              ${
+                local
+                  ?.slice(0, 8)
+                  .map(card)
+                  .join("") ||
+                ""
+              }
+            </div>
+          `;
       }
 
-      $("results").innerHTML =
-        `
-          <div
-            class="pro"
-            style="padding:14px;border-radius:12px"
-          >
+      if (
+        payload.usage &&
+        !payload.usage.pro &&
+        payload.usage.remaining !==
+          null
+      ) {
+        state.uses =
+          Number(
+            payload.usage.remaining
+          );
 
-            <h3>
-              🧠 FSM-AI
-              ${esc(
-                result.version ||
-                  "1.0"
-              )}
-            </h3>
-
-            <p>
-              Puntuación FSM:
-              <b>
-                ${esc(
-                  result.score ??
-                    "-"
-                )}
-              </b>
-            </p>
-
-            <p>
-              GRL:
-              <b>
-                ${esc(
-                  result.metrics
-                    ?.overall ??
-                    "-"
-                )}
-              </b>
-
-              · Ataque:
-              <b>
-                ${esc(
-                  result.metrics
-                    ?.attack ??
-                    "-"
-                )}
-              </b>
-
-              · Pase:
-              <b>
-                ${esc(
-                  result.metrics
-                    ?.passing ??
-                    "-"
-                )}
-              </b>
-
-              · Defensa:
-              <b>
-                ${esc(
-                  result.metrics
-                    ?.defending ??
-                    "-"
-                )}
-              </b>
-
-              · Físico:
-              <b>
-                ${esc(
-                  result.metrics
-                    ?.physical ??
-                    "-"
-                )}
-              </b>
-            </p>
-
-            <p>
-              Prioridad:
-              <b>
-                ${esc(
-                  result.priority ??
-                    "-"
-                )}
-              </b>
-            </p>
-
-            ${advice
-              .map(
-                (item) => `
-                  <p class="muted">
-                    💡 ${esc(item)}
-                  </p>
-                `
-              )
-              .join("")}
-
-          </div>
-        `;
+        updateAuthUI();
+      }
 
     } catch (error) {
       console.error(
-        "FSM - IA:",
+        "FSM IA:",
         error
       );
 
-      toast(
-        "No se pudo conectar con FSM IA."
-      );
+      if (!local) {
+        $("results").innerHTML =
+          `
+            <div class="notice">
+              ${esc(
+                error.message ||
+                "No se pudo completar el análisis."
+              )}
+            </div>
+          `;
+      }
 
     } finally {
+      state.aiBusy =
+        false;
+
       if (button) {
-        button.disabled = false;
+        button.disabled =
+          false;
         button.textContent =
           "🔎 USAR 1 ANÁLISIS";
       }
     }
   }
 
+  function analyzeMarket() {
+    const id =
+      $("marketPlayer")
+        ?.value;
+
+    const price =
+      Number(
+        $("marketPrice")
+          ?.value ||
+        0
+      );
+
+    const player =
+      getPlayers().find(
+        (item) =>
+          String(
+            item.id
+          ) ===
+          String(id)
+      );
+
+    if (!player) {
+      $("marketOut").innerHTML =
+        `
+          <div class="notice">
+            Selecciona un jugador.
+          </div>
+        `;
+      return;
+    }
+
+    if (!price) {
+      $("marketOut").innerHTML =
+        `
+          <div class="notice">
+            Introduce un precio.
+          </div>
+        `;
+      return;
+    }
+
+    const reference =
+      Number(
+        player.price ||
+        0
+      );
+
+    let message =
+      "No hay precio de referencia real disponible.";
+
+    if (reference > 0) {
+      const diff =
+        ((price -
+          reference) /
+          reference) *
+        100;
+
+      message =
+        diff <= -10
+          ? "🟢 Parece una compra interesante frente a la referencia."
+          : diff >= 10
+            ? "🔴 Está por encima de la referencia."
+            : "🟡 El precio está cerca de la referencia.";
+    }
+
+    $("marketOut").innerHTML =
+      `
+        <div class="notice">
+
+          <b>
+            ${esc(
+              player.name
+            )}
+          </b>
+
+          · Precio:
+          🪙 ${money(
+            price
+          )}
+
+          <br>
+
+          ${message}
+
+        </div>
+      `;
+  }
+
   function openPro() {
     $("modal")
-      ?.classList.add("show");
+      ?.classList.add(
+        "open"
+      );
   }
 
   function closePro() {
     $("modal")
-      ?.classList.remove("show");
+      ?.classList.remove(
+        "open"
+      );
   }
 
-  function createSeparatedAuthButtons() {
-    const oldButton =
-      $("authSubmit");
+  function activateProDemo() {
+    state.pro =
+      true;
 
-    if (!oldButton) {
-      return;
-    }
+    updateAuthUI();
+    closePro();
 
-    if (
-      $("authCreate") ||
-      $("authLogin")
-    ) {
-      return;
-    }
-
-    const wrapper =
-      document.createElement(
-        "div"
-      );
-
-    wrapper.className =
-      "auth-actions";
-
-    wrapper.style.display =
-      "grid";
-
-    wrapper.style.gridTemplateColumns =
-      "1fr 1fr";
-
-    wrapper.style.gap =
-      "12px";
-
-    wrapper.style.marginTop =
-      "12px";
-
-    const createButton =
-      document.createElement(
-        "button"
-      );
-
-    createButton.id =
-      "authCreate";
-
-    createButton.type =
-      "button";
-
-    createButton.className =
-      "btn primary";
-
-    createButton.textContent =
-      "CREAR CUENTA";
-
-    createButton.addEventListener(
-      "click",
-      registerAccount
-    );
-
-    const loginButton =
-      document.createElement(
-        "button"
-      );
-
-    loginButton.id =
-      "authLogin";
-
-    loginButton.type =
-      "button";
-
-    loginButton.className =
-      "btn";
-
-    loginButton.textContent =
-      "ENTRAR";
-
-    loginButton.addEventListener(
-      "click",
-      loginAccount
-    );
-
-    wrapper.append(
-      createButton,
-      loginButton
-    );
-
-    oldButton.replaceWith(
-      wrapper
+    toast(
+      "⭐ PRO activado en modo DEMO."
     );
   }
 
-  function handleAuthCallback() {
-    const hash =
-      window.location.hash;
-
-    if (!hash) {
-      return;
-    }
-
-    const params =
-      new URLSearchParams(
-        hash.replace(/^#/, "")
-      );
-
-    const errorCode =
-      params.get(
-        "error_code"
-      );
-
-    const description =
-      params.get(
-        "error_description"
-      );
-
-    if (
-      !errorCode &&
-      !description
-    ) {
-      return;
-    }
-
-    const text =
-      String(
-        description || ""
-      ).replaceAll(
-        "+",
-        " "
-      );
-
-    if (
-      errorCode ===
-        "otp_expired" ||
-      /invalid|expired/i.test(
-        text
-      )
-    ) {
-      toast(
-        "El enlace de confirmación ha caducado o ya fue utilizado. Solicita un correo nuevo."
-      );
-    } else {
-      toast(
-        text ||
-          "No se pudo completar la confirmación."
-      );
-    }
-
-    history.replaceState(
-      {},
-      document.title,
-      window.location.pathname +
-        window.location.search
-    );
-  }
-
-  function bindEvents() {
+  function wireNavigation() {
     document
       .querySelectorAll(
         "[data-page]"
       )
       .forEach(
         (button) => {
-
-          button.onclick =
+          button.addEventListener(
+            "click",
             () =>
               go(
                 button.dataset.page
-              );
+              )
+          );
         }
       );
 
@@ -1404,182 +1904,185 @@
       )
       .forEach(
         (button) => {
-
-          button.onclick =
+          button.addEventListener(
+            "click",
             () =>
               go(
                 button.dataset.go
-              );
-        }
-      );
-
-    $("playerSearch")
-      ?.addEventListener(
-        "input",
-        (event) => {
-
-          searchQuery =
-            event.target.value ||
-            "";
-
-          go("players");
-
-          renderPlayers();
-        }
-      );
-
-    $("recommend")
-      ?.addEventListener(
-        "click",
-        recommend
-      );
-
-    $("compareBtn")
-      ?.addEventListener(
-        "click",
-        comparePlayers
-      );
-
-    $("marketBtn")
-      ?.addEventListener(
-        "click",
-        analyzeMarket
-      );
-
-    $("saveSquad")
-      ?.addEventListener(
-        "click",
-        saveSquad
-      );
-
-    $("accountBtn")
-      ?.addEventListener(
-        "click",
-        () => go("account")
-      );
-
-    $("logout")
-      ?.addEventListener(
-        "click",
-        logout
-      );
-
-    $("proBtn")
-      ?.addEventListener(
-        "click",
-        openPro
-      );
-
-    $("homePro")
-      ?.addEventListener(
-        "click",
-        openPro
-      );
-
-    $("accountPro")
-      ?.addEventListener(
-        "click",
-        openPro
-      );
-
-    $("modalClose")
-      ?.addEventListener(
-        "click",
-        closePro
-      );
-
-    $("activate")
-      ?.addEventListener(
-        "click",
-        () => {
-
-          toast(
-            "El pago real se añadirá en la Fase 6."
+              )
           );
+        }
+      );
 
+    $("accountBtn")?.addEventListener(
+      "click",
+      () => go("account")
+    );
+
+    $("proBtn")?.addEventListener(
+      "click",
+      openPro
+    );
+
+    $("homePro")?.addEventListener(
+      "click",
+      openPro
+    );
+
+    $("accountPro")?.addEventListener(
+      "click",
+      openPro
+    );
+
+    $("modalClose")?.addEventListener(
+      "click",
+      closePro
+    );
+
+    $("activate")?.addEventListener(
+      "click",
+      activateProDemo
+    );
+
+    $("modal")?.addEventListener(
+      "click",
+      (event) => {
+        if (
+          event.target ===
+          $("modal")
+        ) {
           closePro();
         }
-      );
-  }
-
-  function init() {
-    renderPlayers();
-
-    if ($("formation")) {
-      buildSquad();
-    }
-
-    createSeparatedAuthButtons();
-
-    bindEvents();
-
-    handleAuthCallback();
-
-    updateAuthUI();
-
-    window.addEventListener(
-      "fsm:players-ready",
-      (event) => {
-
-        state.players =
-          Array.isArray(
-            event.detail?.players
-          )
-            ? event.detail.players
-            : getPlayers();
-
-        renderPlayers();
-
-        if ($("formation")) {
-          buildSquad();
-        }
-
-        console.info(
-          `FSM: catálogo actualizado (${state.players.length} jugadores).`
-        );
       }
     );
 
-    if (supabaseClient) {
+    $("compareBtn")?.addEventListener(
+      "click",
+      comparePlayers
+    );
 
-      supabaseClient.auth
-        .onAuthStateChange(
-          (_event, session) => {
+    $("saveSquad")?.addEventListener(
+      "click",
+      saveSquad
+    );
 
-            setTimeout(
-              () =>
-                loadProfile(
-                  session?.user ||
-                    null
-                ),
-              0
-            );
-          }
-        );
+    $("marketBtn")?.addEventListener(
+      "click",
+      analyzeMarket
+    );
 
-      supabaseClient.auth
-        .getSession()
-        .then(
-          ({ data }) =>
-            loadProfile(
-              data.session
-                ?.user ||
-                null
-            )
-        )
-        .catch(
-          (error) =>
-            console.error(
-              "FSM - getSession:",
-              error
-            )
-        );
+    $("recommend")?.addEventListener(
+      "click",
+      runAI
+    );
+
+    $("logout")?.addEventListener(
+      "click",
+      logout
+    );
+
+    const search =
+      $("playerSearch");
+
+    if (search) {
+      search.addEventListener(
+        "input",
+        () =>
+          handlePlayerSearch(
+            search.value
+          )
+      );
     }
   }
 
-  window.addEventListener(
-    "DOMContentLoaded",
-    init
-  );
+  function listenPlayers() {
+    window.addEventListener(
+      "fsm:players-ready",
+      () => {
+        requestAnimationFrame(
+          () => {
+            updateCatalog();
+            renderSquad();
+          }
+        );
+      }
+    );
+  }
 
+  async function initAuth() {
+    if (!supabaseClient) {
+      updateAuthUI();
+      return;
+    }
+
+    const {
+      data
+    } =
+      await supabaseClient.auth.getSession();
+
+    await loadProfile(
+      data?.session?.user ||
+        null
+    );
+
+    supabaseClient.auth.onAuthStateChange(
+      (_event, session) => {
+        setTimeout(
+          () =>
+            loadProfile(
+              session?.user ||
+                null
+            ),
+          0
+        );
+      }
+    );
+  }
+
+  function firstPaint() {
+    buildSearchIndex();
+
+    renderFeatured();
+    renderPlayers();
+    refreshPickers();
+    renderSquad();
+  }
+
+  function init() {
+    wireNavigation();
+    listenPlayers();
+    ensureAuthButtons();
+    firstPaint();
+    updateAuthUI();
+
+    void initAuth();
+
+    setTimeout(
+      () => {
+        if (
+          getPlayers().length !==
+          state.players.length
+        ) {
+          updateCatalog();
+          renderSquad();
+        }
+      },
+      1200
+    );
+  }
+
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+    document.addEventListener(
+      "DOMContentLoaded",
+      init,
+      {
+        once: true
+      }
+    );
+  } else {
+    init();
+  }
 })();
