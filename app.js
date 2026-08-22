@@ -2425,6 +2425,9 @@ function addImageStyles() {
   }
 
   function init() {
+   addImageStyles();
+
+    
     wireNavigation();
     listenPlayers();
     ensureAuthButtons();
