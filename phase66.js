@@ -10,7 +10,7 @@
     "https://jshevgjyweoianpbbjdl.supabase.co";
 
   const SUPABASE_KEY =
-    "sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6TMaFORK";
+    "sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6UTaFORK";
 
   const sb =
     window.supabase?.createClient(
@@ -39,6 +39,10 @@
         cursor:pointer;
         font-weight:800;
         font-size:11px
+      }
+
+      .fsm66-btn:hover{
+        background:#ffffff12;
       }
 
       .fsm66-btn.primary{
@@ -304,8 +308,17 @@
     if (!sb) return false;
 
     const {
-      data:{session}
+      data: { session },
+      error: sessionError
     } = await sb.auth.getSession();
+
+    if (sessionError) {
+      console.error(
+        "FSM 6.6 session:",
+        sessionError
+      );
+      return false;
+    }
 
     adminUser =
       session?.user || null;
@@ -314,7 +327,10 @@
       return false;
     }
 
-    const { data, error } =
+    const {
+      data,
+      error
+    } =
       await sb
         .from("profiles")
         .select("is_admin")
@@ -329,13 +345,10 @@
         "FSM 6.6 admin check:",
         error
       );
-
       return false;
     }
 
-    return Boolean(
-      data?.is_admin
-    );
+    return data?.is_admin === true;
   }
 
   function addButton() {
@@ -514,7 +527,6 @@
       alert(
         "No tienes permisos de administrador."
       );
-
       return;
     }
 
@@ -538,6 +550,7 @@
   async function render(
     tab
   ) {
+
     document
       .querySelectorAll(
         ".fsm66-nav button"
@@ -579,6 +592,7 @@
   }
 
   async function overview() {
+
     const [
       usersResult,
       playersResult,
@@ -591,8 +605,10 @@
           .select(
             "id",
             {
-              count:"exact",
-              head:true
+              count:
+                "exact",
+              head:
+                true
             }
           ),
 
@@ -601,8 +617,10 @@
           .select(
             "id",
             {
-              count:"exact",
-              head:true
+              count:
+                "exact",
+              head:
+                true
             }
           ),
 
@@ -611,8 +629,10 @@
           .select(
             "id",
             {
-              count:"exact",
-              head:true
+              count:
+                "exact",
+              head:
+                true
             }
           ),
 
@@ -621,8 +641,10 @@
           .select(
             "id",
             {
-              count:"exact",
-              head:true
+              count:
+                "exact",
+              head:
+                true
             }
           )
           .eq(
@@ -631,10 +653,17 @@
           )
       ]);
 
+    $("fsm66Title").textContent =
+      "📊 Resumen";
+
+    $("fsm66Sub").textContent =
+      "Vista general de tu plataforma FSM.";
+
     $("fsm66Body").innerHTML = `
       <div class="fsm66-grid">
 
         <div class="fsm66-card">
+
           <h3>
             👥 Usuarios
           </h3>
@@ -646,9 +675,11 @@
           <div class="fsm66-muted">
             Perfiles registrados
           </div>
+
         </div>
 
         <div class="fsm66-card">
+
           <h3>
             👤 Jugadores
           </h3>
@@ -658,11 +689,13 @@
           </div>
 
           <div class="fsm66-muted">
-            Cartas en catálogo
+            Jugadores del catálogo
           </div>
+
         </div>
 
         <div class="fsm66-card">
+
           <h3>
             🎫 Tickets
           </h3>
@@ -674,9 +707,11 @@
           <div class="fsm66-muted">
             Incidencias
           </div>
+
         </div>
 
         <div class="fsm66-card">
+
           <h3>
             🔔 Alertas
           </h3>
@@ -688,6 +723,7 @@
           <div class="fsm66-muted">
             Alertas activas
           </div>
+
         </div>
 
       </div>
@@ -702,8 +738,8 @@
         </h3>
 
         <p class="fsm66-muted">
-          Panel privado para administrar FSM,
-          soporte y operaciones.
+          Este panel es privado y está destinado
+          exclusivamente a administradores.
         </p>
 
       </div>
@@ -711,6 +747,7 @@
   }
 
   async function tickets() {
+
     const result =
       await sb
         .from(
@@ -722,16 +759,16 @@
         .order(
           "updated_at",
           {
-            ascending:false
+            ascending:
+              false
           }
         )
         .limit(
           100
         );
 
-    if (
-      result.error
-    ) {
+    if (result.error) {
+
       $("fsm66Body").innerHTML = `
         <div class="fsm66-empty">
           No se pudieron cargar los tickets.
@@ -745,10 +782,33 @@
       result.data ||
       [];
 
+    $("fsm66Title").textContent =
+      "🎫 Soporte";
+
+    $("fsm66Sub").textContent =
+      "Gestiona las incidencias de los usuarios.";
+
     if (!rows.length) {
+
       $("fsm66Body").innerHTML = `
         <div class="fsm66-empty">
-          No hay incidencias.
+
+          <div
+            style="font-size:34px"
+          >
+            🎫
+          </div>
+
+          <h3
+            style="color:#fff"
+          >
+            No hay incidencias
+          </h3>
+
+          <p>
+            Todavía no se han creado tickets.
+          </p>
+
         </div>
       `;
 
@@ -766,62 +826,63 @@
 
           ${rows
             .map(
-              (row) =>
-                `
-                  <div class="fsm66-row">
+              (row) => `
+                <div
+                  class="fsm66-row"
+                >
 
-                    <div>
+                  <div>
 
-                      <strong>
-                        ${escapeHtml(
-                          row.subject
-                        )}
-                      </strong>
+                    <strong>
+                      ${escapeHtml(
+                        row.subject
+                      )}
+                    </strong>
 
-                      <small>
-                        ${escapeHtml(
-                          row.category ||
-                          "general"
-                        )}
+                    <small>
+                      ${escapeHtml(
+                        row.category ||
+                        "general"
+                      )}
 
-                        ·
+                      ·
 
-                        ${escapeHtml(
-                          row.priority ||
-                          "normal"
-                        )}
+                      ${escapeHtml(
+                        row.priority ||
+                        "normal"
+                      )}
 
-                        ·
+                      ·
 
-                        ${escapeHtml(
-                          row.status ||
-                          "open"
-                        )}
+                      ${escapeHtml(
+                        row.status ||
+                        "open"
+                      )}
 
-                        ·
+                      ·
 
-                        ${new Date(
-                          row.updated_at ||
-                          row.created_at
-                        ).toLocaleString(
-                          "es-ES"
-                        )}
-                      </small>
-
-                    </div>
-
-                    <button
-                      class="fsm66-btn primary"
-                      data-ticket="${escapeAttr(
-                        row.id
-                      )}"
-                      type="button"
-                    >
-                      Abrir
-                    </button>
+                      ${new Date(
+                        row.updated_at ||
+                        row.created_at
+                      ).toLocaleString(
+                        "es-ES"
+                      )}
+                    </small>
 
                   </div>
-                `
+
+                  <button
+                    class="fsm66-btn primary"
+                    data-ticket="${escapeAttr(
+                      row.id
+                    )}"
+                    type="button"
+                  >
+                    Abrir
+                  </button>
+
+                </div>
+              `
             )
             .join("")}
 
@@ -842,6 +903,7 @@
               openTicket(
                 button.dataset.ticket
               );
+
         }
       );
   }
@@ -849,6 +911,7 @@
   async function openTicket(
     ticketId
   ) {
+
     const ticketResult =
       await sb
         .from(
@@ -866,6 +929,11 @@
     if (
       ticketResult.error
     ) {
+
+      alert(
+        "No se pudo abrir el ticket."
+      );
+
       return;
     }
 
@@ -884,7 +952,8 @@
         .order(
           "created_at",
           {
-            ascending:true
+            ascending:
+              true
           }
         );
 
@@ -894,6 +963,12 @@
     const messages =
       messagesResult.data ||
       [];
+
+    $("fsm66Title").textContent =
+      "🎫 Incidencia";
+
+    $("fsm66Sub").textContent =
+      "Conversación con el usuario.";
 
     $("fsm66Body").innerHTML = `
       <div class="fsm66-card">
@@ -910,23 +985,25 @@
           <div>
 
             <h3>
-              🎫
               ${escapeHtml(
                 ticket.subject
               )}
             </h3>
 
-            <div class="fsm66-muted">
+            <div
+              class="fsm66-muted"
+            >
+              Categoría:
               ${escapeHtml(
                 ticket.category ||
                 "general"
               )}
-              ·
+              · Prioridad:
               ${escapeHtml(
                 ticket.priority ||
                 "normal"
               )}
-              ·
+              · Estado:
               ${escapeHtml(
                 ticket.status ||
                 "open"
@@ -972,8 +1049,8 @@
                             ${
                               message.sender_type ===
                               "admin"
-                                ? "Soporte FSM"
-                                : "Usuario"
+                                ? "🛡️ Soporte FSM"
+                                : "👤 Usuario"
                             }
                           </b>
 
@@ -1012,7 +1089,7 @@
 
           <textarea
             id="fsm66Reply"
-            placeholder="Escribe una respuesta..."
+            placeholder="Escribe una respuesta para el usuario..."
             maxlength="3000"
           ></textarea>
 
@@ -1065,8 +1142,7 @@
     `;
 
     $("fsm66BackTickets").onclick =
-      () =>
-        tickets();
+      tickets;
 
     $("fsm66SendReply").onclick =
       () =>
@@ -1087,6 +1163,7 @@
                 ticketId,
                 button.dataset.status
               );
+
         }
       );
   }
@@ -1094,11 +1171,19 @@
   async function sendReply(
     ticketId
   ) {
+
+    if (!adminUser) {
+      alert(
+        "Sesión de administrador no encontrada."
+      );
+      return;
+    }
+
     const input =
       $("fsm66Reply");
 
     const text =
-      input.value.trim();
+      input?.value.trim();
 
     if (!text) {
       return;
@@ -1123,10 +1208,10 @@
             "admin"
         });
 
-    if (
-      result.error
-    ) {
+    if (result.error) {
+
       console.error(
+        "FSM66 reply:",
         result.error
       );
 
@@ -1149,6 +1234,7 @@
     ticketId,
     status
   ) {
+
     const result =
       await sb
         .from(
@@ -1162,9 +1248,13 @@
           ticketId
         );
 
-    if (
-      result.error
-    ) {
+    if (result.error) {
+
+      console.error(
+        "FSM66 status:",
+        result.error
+      );
+
       alert(
         "No se pudo actualizar el estado."
       );
@@ -1178,6 +1268,7 @@
   }
 
   async function users() {
+
     const result =
       await sb
         .from(
@@ -1189,16 +1280,16 @@
         .order(
           "created_at",
           {
-            ascending:false
+            ascending:
+              false
           }
         )
         .limit(
           100
         );
 
-    if (
-      result.error
-    ) {
+    if (result.error) {
+
       $("fsm66Body").innerHTML = `
         <div class="fsm66-empty">
           No se pudieron cargar los usuarios.
@@ -1212,6 +1303,12 @@
       result.data ||
       [];
 
+    $("fsm66Title").textContent =
+      "👥 Usuarios";
+
+    $("fsm66Sub").textContent =
+      "Usuarios registrados en FSM.";
+
     $("fsm66Body").innerHTML = `
       <div class="fsm66-card">
 
@@ -1219,7 +1316,9 @@
           👥 Usuarios
         </h3>
 
-        <div class="fsm66-list">
+        <div
+          class="fsm66-list"
+        >
 
           ${
             rows.length
@@ -1243,7 +1342,7 @@
                             <small>
                               ${
                                 user.is_pro
-                                  ? "PRO"
+                                  ? "⭐ PRO"
                                   : "FREE"
                               }
 
@@ -1251,7 +1350,7 @@
 
                               ${
                                 user.is_admin
-                                  ? "ADMIN"
+                                  ? "🛡️ ADMIN"
                                   : "USER"
                               }
 
@@ -1259,7 +1358,7 @@
 
                               ${user.free_uses ??
                                 0}
-                              usos
+                              análisis disponibles
                             </small>
 
                           </div>
@@ -1282,6 +1381,13 @@
   }
 
   async function security() {
+
+    $("fsm66Title").textContent =
+      "🔐 Seguridad";
+
+    $("fsm66Sub").textContent =
+      "Estado de las protecciones administrativas.";
+
     $("fsm66Body").innerHTML = `
       <div class="fsm66-grid">
 
@@ -1291,12 +1397,16 @@
             🔐 RLS
           </h3>
 
-          <div class="fsm66-number">
+          <div
+            class="fsm66-number"
+          >
             ACTIVO
           </div>
 
-          <div class="fsm66-muted">
-            Protección mediante políticas
+          <div
+            class="fsm66-muted"
+          >
+            Las tablas utilizan políticas
             de acceso.
           </div>
 
@@ -1308,13 +1418,17 @@
             🛡️ Admin
           </h3>
 
-          <div class="fsm66-number">
+          <div
+            class="fsm66-number"
+          >
             PRIVADO
           </div>
 
-          <div class="fsm66-muted">
-            Solo perfiles administradores
-            pueden abrir este panel.
+          <div
+            class="fsm66-muted"
+          >
+            Solo perfiles con is_admin=true
+            pueden utilizar el panel.
           </div>
 
         </div>
@@ -1325,12 +1439,17 @@
             🎫 Soporte
           </h3>
 
-          <div class="fsm66-number">
-            RLS
+          <div
+            class="fsm66-number"
+          >
+            PROTEGIDO
           </div>
 
-          <div class="fsm66-muted">
-            Los mensajes están protegidos.
+          <div
+            class="fsm66-muted"
+          >
+            Los mensajes están restringidos
+            mediante políticas.
           </div>
 
         </div>
@@ -1343,13 +1462,13 @@
       >
 
         <h3>
-          ⚠️ Regla importante
+          ⚠️ Regla de seguridad
         </h3>
 
         <p class="fsm66-muted">
-          Nunca pongas una service_role key en
-          index.html, app.js, phase6.js o
-          phase66.js.
+          Nunca coloques una service_role key
+          dentro de index.html, app.js,
+          support.js, phase6.js o phase66.js.
         </p>
 
       </div>
@@ -1359,6 +1478,7 @@
   function escapeHtml(
     value
   ) {
+
     return String(
       value ?? ""
     )
@@ -1393,37 +1513,43 @@
   }
 
   async function init() {
+
     if (!sb) {
+      console.warn(
+        "FSM 6.6: Supabase no disponible."
+      );
       return;
     }
 
     styles();
+
     createPanel();
 
-    const ok =
+    const allowed =
       await isAdmin();
 
-    if (ok) {
+    if (allowed) {
       addButton();
     }
 
     sb.auth.onAuthStateChange(
       () => {
+
         setTimeout(
           async () => {
 
-            const allowed =
+            const isAllowed =
               await isAdmin();
 
             if (
-              allowed &&
+              isAllowed &&
               !$("fsm66Open")
             ) {
               addButton();
             }
 
             if (
-              !allowed &&
+              !isAllowed &&
               $("fsm66Open")
             ) {
               $("fsm66Open")
@@ -1441,12 +1567,16 @@
     document.readyState ===
     "loading"
   ) {
+
     document.addEventListener(
       "DOMContentLoaded",
       init
     );
+
   } else {
+
     init();
+
   }
 
 })();
