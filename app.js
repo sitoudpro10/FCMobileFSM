@@ -503,66 +503,49 @@
     );
   }
 
-  function renderSquad() {
-    const box =
-      $("formation");
+function renderSquad(){
+  const box = $("formation");
 
-    if (!box) {
-      return;
-    }
-
-    const positions = [
-      "GK",
-      "LB",
-      "CB",
-      "CB",
-      "RB",
-      "CDM",
-      "CM",
-      "CAM",
-      "LW",
-      "RW",
-      "ST"
-    ];
-
-    const opts =
-      pickerOptions();
-
-    box.innerHTML =
-      `
-        <div class="form2">
-
-          ${
-            positions
-              .map(
-                (
-                  x,
-                  i
-                ) =>
-                  `
-                    <div class="field">
-
-                      <label>
-                        ${i + 1}.
-                        ${x}
-                      </label>
-
-                      <select
-                        data-squad="${i}"
-                      >
-                        ${opts}
-                      </select>
-
-                    </div>
-                  `
-              )
-              .join("")
-          }
-
-        </div>
-      `;
+  if (!box) {
+    return;
   }
 
+  const positions = [
+    ["GK", "gk"],
+    ["LB", "lb"],
+    ["CB", "cb1"],
+    ["CB", "cb2"],
+    ["RB", "rb"],
+    ["CDM", "cm1"],
+    ["CM", "cm2"],
+    ["CAM", "cam"],
+    ["LW", "lw"],
+    ["RW", "rw"],
+    ["ST", "st"]
+  ];
+
+  const opts = pickerOptions();
+
+  box.innerHTML =
+    positions
+      .map(
+        ([position, cssClass], index) => `
+          <div class="spot ${cssClass}">
+            <select
+              data-squad="${index}"
+              aria-label="${esc(position)}"
+            >
+              ${opts}
+            </select>
+
+            <span>
+              ${esc(position)}
+            </span>
+          </div>
+        `
+      )
+      .join("");
+}
   function renderAll() {
     renderFeatured();
     renderPlayers();
