@@ -227,11 +227,70 @@
 
 <div id="toast" class="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="players.js"></script>
-<script src="app.js"></script>
-<script src="support.js"></script>
-<script src="phase6.js"></script> 
-<script src="phase66.js"></script> 
-  </body>
-</html>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="players.js" defer></script>
+<script src="app.js" defer></script>
+
+<script>
+(() => {
+  "use strict";
+
+  function loadDeferredScript(src) {
+    const script =
+      document.createElement("script");
+
+    script.src =
+      src;
+
+    script.async =
+      true;
+
+    document.body.appendChild(
+      script
+    );
+  }
+
+  function startSecondary() {
+    loadDeferredScript(
+      "support.js"
+    );
+
+    setTimeout(() => {
+      loadDeferredScript(
+        "phase6.js"
+      );
+    }, 300);
+
+    setTimeout(() => {
+      loadDeferredScript(
+        "phase66.js"
+      );
+    }, 600);
+  }
+
+  if (
+    "requestIdleCallback" in
+    window
+  ) {
+    requestIdleCallback(
+      startSecondary,
+      {
+        timeout: 3000
+      }
+    );
+  } else {
+    window.addEventListener(
+      "load",
+      () => {
+        setTimeout(
+          startSecondary,
+          1200
+        );
+      },
+      {
+        once: true
+      }
+    );
+  }
+})();
+</script>
