@@ -34,3 +34,40 @@ main{flex:1;min-width:0;padding:30px}.page{display:none}.page.active{display:blo
 .mobile-nav{display:none}
 @media(max-width:1000px){.sidebar{display:none}.mobile-nav{display:flex;position:fixed;z-index:60;bottom:0;left:0;right:0;background:#080b12ee;backdrop-filter:blur(15px);border-top:1px solid var(--line);justify-content:space-around;padding:7px}.mobile-nav button{background:none;border:0;color:#9aa4b6;font-size:10px}.mobile-nav button.active{color:#bcaeff}.app main{padding:22px 14px 78px}.grid4{grid-template-columns:repeat(2,1fr)}.cards{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:600px){.tag{display:none}.brand{font-size:15px}.topbar{padding:8px 10px}.badge{display:none}.cards{grid-template-columns:repeat(2,1fr)}.grid4{grid-template-columns:1fr 1fr}.form2{grid-template-columns:1fr}.compare{grid-template-columns:1fr}.hero h1{letter-spacing:-2px;font-size:44px}.art{height:155px}.spot select{width:100px}.formation{aspect-ratio:1.1}}
+
+/* PERF PATCH — FC MOBILE FSM */
+
+.topbar{
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  background:#080b12f5 !important;
+}
+
+.mobile-nav{
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  background:#080b12f5 !important;
+}
+
+.panel{
+  box-shadow:0 8px 28px #0002 !important;
+}
+
+.card:hover,
+.quick:hover{
+  transform:none !important;
+}
+
+.modal{
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+
+.art{
+  content-visibility:auto;
+  contain:layout paint style;
+}
+
+.cards{
+  contain:layout;
+}
