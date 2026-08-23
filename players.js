@@ -571,28 +571,68 @@
     );
   }
 
-  function idle(
-    callback,
-    delay = 0
-  ) {
-    if (
-      "requestIdleCallback" in
-      window
-    ) {
-      window.requestIdleCallback(
-        callback,
-        {
-          timeout:
-            2500
-        }
-      );
-      return;
+  let referencePromise = null;
+  let referenceLoaded = false;
+
+  async function loadReferenceOnDemand() {
+    if (referenceLoaded) {
+      return window.FSM_PLAYERS;
     }
 
-    setTimeout(
-      callback,
-      delay
-    );
+    if (referencePromise) {
+      return referencePromise;
+    }
+
+    referencePromise =
+      (async () => {
+        const reference =
+          await loadReference();
+
+        const current =
+          Array.isArray(
+            window.FSM_PLAYERS
+          )
+            ? window.FSM_PLAYERS
+            : FALLBACK;
+
+        const merged =
+          merge(
+            current,
+            reference
+          );
+
+        if (
+          merged.length >
+          current.length
+        ) {
+          publish(
+            merged,
+            window.FSM_PLAYERS_SOURCE ===
+              "supabase"
+              ? "supabase+fc26-reference"
+              : "fallback+fc26-reference"
+          );
+        }
+
+        referenceLoaded = true;
+
+        return window.FSM_PLAYERS;
+      })()
+        .catch((error) => {
+          console.warn(
+            "FSM reference load:",
+            error
+          );
+
+          referenceLoaded = true;
+
+          return window.FSM_PLAYERS;
+        })
+        .finally(() => {
+          referencePromise = null;
+        });
+
+    return referencePromise;
   }
 
   async function bootstrap() {
@@ -612,45 +652,10 @@
         "supabase"
       );
     }
-
-    idle(
-      async () => {
-        await new Promise(
-          resolve =>
-            setTimeout(
-              resolve,
-              REFERENCE_DELAY
-            )
-        );
-
-        const reference =
-          await loadReference();
-
-        const primary =
-          supabasePlayers.length
-            ? supabasePlayers
-            : FALLBACK;
-
-        const merged =
-          merge(
-            primary,
-            reference
-          );
-
-        if (
-          merged.length >
-          primary.length
-        ) {
-          publish(
-            merged,
-            supabasePlayers.length
-              ? "supabase+fc26-reference"
-              : "fallback+fc26-reference"
-          );
-        }
-      }
-    );
   }
+
+  window.FSM_PLAYERS_LOAD_REFERENCE =
+    loadReferenceOnDemand;
 
   window.FSM_PLAYERS_REFRESH =
     async () => {
