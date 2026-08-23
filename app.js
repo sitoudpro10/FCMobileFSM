@@ -5,7 +5,12 @@
   const URL = "https://jshevgjyweoianpbbjdl.supabase.co";
   const KEY = "sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6UTaFORK";
   const AI_URL = `${URL}/functions/v1/fsm-ai-secure`;
-  const client = window.supabase?.createClient?.(URL, KEY) || null;
+
+  const client =
+    window.supabase?.createClient?.(
+      URL,
+      KEY
+    ) || null;
 
   const state = {
     players: [],
@@ -19,27 +24,63 @@
     pro: false,
     user: null,
     aiBusy: false,
-    catalogStamp: ""
+    catalogStamp: "",
+
+    positionFilter: "ALL",
+    ovrFilter: 0,
+    sortMode: "ovr_desc",
+    favoritesOnly: false,
+
+    favorites: new Set(
+      JSON.parse(
+        localStorage.getItem(
+          "fsm_favorites_v1"
+        ) || "[]"
+      ).map(String)
+    )
   };
 
-  const esc = v => String(v ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  const esc = v =>
+    String(v ?? "")
+      .replaceAll(
+        "&",
+        "&amp;"
+      )
+      .replaceAll(
+        "<",
+        "&lt;"
+      )
+      .replaceAll(
+        ">",
+        "&gt;"
+      )
+      .replaceAll(
+        '"',
+        "&quot;"
+      )
+      .replaceAll(
+        "'",
+        "&#039;"
+      );
 
   const money = v => {
-    const n = Number(v) || 0;
+    const n =
+      Number(v) || 0;
 
-    if (!n) return "—";
+    if (!n) {
+      return "—";
+    }
 
     if (n >= 1e9) {
-      return `${(n / 1e9).toFixed(1)}B`;
+      return `${(
+        n / 1e9
+      ).toFixed(1)}B`;
     }
 
     if (n >= 1e6) {
-      return `${Math.round(n / 1e6)}M`;
+      return `${Math.round(
+        n / 1e6
+      )}M`;
     }
 
     return new Intl.NumberFormat(
@@ -47,20 +88,35 @@
     ).format(n);
   };
 
-  function toast(msg) {
-    const e = $("toast");
+  function toast(
+    msg
+  ) {
+    const e =
+      $("toast");
 
-    if (!e) return;
+    if (!e) {
+      return;
+    }
 
-    e.textContent = msg;
-    e.classList.add("show");
+    e.textContent =
+      msg;
 
-    clearTimeout(e._t);
-
-    e._t = setTimeout(
-      () => e.classList.remove("show"),
-      2600
+    e.classList.add(
+      "show"
     );
+
+    clearTimeout(
+      e._t
+    );
+
+    e._t =
+      setTimeout(
+        () =>
+          e.classList.remove(
+            "show"
+          ),
+        2600
+      );
   }
 
   function players() {
@@ -71,10 +127,14 @@
       : [];
   }
 
-  function normalize(p) {
+  function normalize(
+    p
+  ) {
     return {
       ...p,
-      id: p.id,
+
+      id:
+        p.id,
 
       name:
         String(
@@ -208,7 +268,10 @@
       state.players
         .slice()
         .sort(
-          (a, b) =>
+          (
+            a,
+            b
+          ) =>
             b.ovr -
             a.ovr
         )
@@ -223,14 +286,599 @@
     renderAll();
   }
 
-  function card(p) {
+  function saveFavorites() {
+    try {
+      localStorage.setItem(
+        "fsm_favorites_v1",
+        JSON.stringify(
+          Array.from(
+            state.favorites
+          )
+        )
+      );
+    } catch {}
+  }
+
+  function isFavorite(
+    player
+  ) {
+    return state.favorites.has(
+      String(
+        player.id
+      )
+    );
+  }
+
+  function toggleFavorite(
+    id
+  ) {
+    const key =
+      String(id);
+
+    if (
+      state.favorites.has(
+        key
+      )
+    ) {
+      state.favorites.delete(
+        key
+      );
+    } else {
+      state.favorites.add(
+        key
+      );
+    }
+
+    saveFavorites();
+
+    applyPlayerFilters();
+
+    toast(
+      state.favorites.has(
+        key
+      )
+        ? "⭐ Jugador añadido a favoritos"
+        : "☆ Jugador quitado de favoritos"
+    );
+  }
+
+  function buildPlayerControls() {
+    const playersBox =
+      $("allPlayers");
+
+    if (
+      !playersBox ||
+      $("fsmPlayerControls")
+    ) {
+      return;
+    }
+
+    const controls =
+      document.createElement(
+        "div"
+      );
+
+    controls.id =
+      "fsmPlayerControls";
+
+    controls.className =
+      "fsm-player-controls";
+
+    controls.innerHTML = `
+      <div class="fsm-filter-row">
+
+        <button
+          type="button"
+          class="fsm-filter active"
+          data-pos-filter="ALL"
+        >
+          TODOS
+        </button>
+
+        <button
+          type="button"
+          class="fsm-filter"
+          data-pos-filter="GK"
+        >
+          GK
+        </button>
+
+        <button
+          type="button"
+          class="fsm-filter"
+          data-pos-filter="DEF"
+        >
+          DEF
+        </button>
+
+        <button
+          type="button"
+          class="fsm-filter"
+          data-pos-filter="MED"
+        >
+          MED
+        </button>
+
+        <button
+          type="button"
+          class="fsm-filter"
+          data-pos-filter="ATA"
+        >
+          ATA
+        </button>
+
+        <button
+          type="button"
+          class="fsm-filter"
+          data-fav-filter="true"
+        >
+          ⭐ FAVORITOS
+        </button>
+
+      </div>
+
+      <div class="fsm-filter-row">
+
+        <select
+          id="fsmOvrFilter"
+          class="input"
+          aria-label="Filtrar por OVR"
+        >
+          <option value="0">
+            Cualquier GRL
+          </option>
+
+          <option value="90">
+            GRL 90+
+          </option>
+
+          <option value="95">
+            GRL 95+
+          </option>
+
+          <option value="100">
+            GRL 100+
+          </option>
+
+          <option value="105">
+            GRL 105+
+          </option>
+
+          <option value="110">
+            GRL 110+
+          </option>
+
+          <option value="115">
+            GRL 115+
+          </option>
+
+          <option value="120">
+            GRL 120+
+          </option>
+        </select>
+
+        <select
+          id="fsmSortMode"
+          class="input"
+          aria-label="Ordenar jugadores"
+        >
+          <option value="ovr_desc">
+            OVR mayor
+          </option>
+
+          <option value="ovr_asc">
+            OVR menor
+          </option>
+
+          <option value="price_asc">
+            Precio menor
+          </option>
+
+          <option value="price_desc">
+            Precio mayor
+          </option>
+
+          <option value="name_asc">
+            Nombre A-Z
+          </option>
+        </select>
+
+      </div>
+
+      <div
+        id="fsmPlayerCount"
+        class="muted"
+        style="
+          font-size:11px;
+          margin:4px 0 12px
+        "
+      ></div>
+    `;
+
+    playersBox.parentNode.insertBefore(
+      controls,
+      playersBox
+    );
+
+    controls
+      .querySelectorAll(
+        "[data-pos-filter]"
+      )
+      .forEach(
+        button => {
+
+          button.addEventListener(
+            "click",
+            () => {
+
+              state.positionFilter =
+                button.dataset.posFilter;
+
+              state.favoritesOnly =
+                false;
+
+              controls
+                .querySelectorAll(
+                  ".fsm-filter"
+                )
+                .forEach(
+                  b =>
+                    b.classList.remove(
+                      "active"
+                    )
+                );
+
+              button.classList.add(
+                "active"
+              );
+
+              applyPlayerFilters();
+            }
+          );
+        }
+      );
+
+    controls
+      .querySelector(
+        "[data-fav-filter]"
+      )
+      .addEventListener(
+        "click",
+        event => {
+
+          state.favoritesOnly =
+            !state.favoritesOnly;
+
+          state.positionFilter =
+            "ALL";
+
+          controls
+            .querySelectorAll(
+              ".fsm-filter"
+            )
+            .forEach(
+              b =>
+                b.classList.remove(
+                  "active"
+                )
+            );
+
+          event.currentTarget.classList.toggle(
+            "active",
+            state.favoritesOnly
+          );
+
+          if (
+            !state.favoritesOnly
+          ) {
+
+            controls
+              .querySelector(
+                '[data-pos-filter="ALL"]'
+              )
+              ?.classList.add(
+                "active"
+              );
+          }
+
+          applyPlayerFilters();
+        }
+      );
+
+    controls
+      .querySelector(
+        "#fsmOvrFilter"
+      )
+      .addEventListener(
+        "change",
+        event => {
+
+          state.ovrFilter =
+            Number(
+              event.target.value
+            ) || 0;
+
+          applyPlayerFilters();
+        }
+      );
+
+    controls
+      .querySelector(
+        "#fsmSortMode"
+      )
+      .addEventListener(
+        "change",
+        event => {
+
+          state.sortMode =
+            event.target.value;
+
+          applyPlayerFilters();
+        }
+      );
+  }
+
+  function matchesPosition(
+    player,
+    filter
+  ) {
+
+    const pos =
+      String(
+        player.pos ||
+        ""
+      )
+        .trim()
+        .toUpperCase();
+
+    if (
+      filter ===
+      "ALL"
+    ) {
+      return true;
+    }
+
+    if (
+      filter ===
+      "GK"
+    ) {
+      return pos ===
+        "GK";
+    }
+
+    if (
+      filter ===
+      "DEF"
+    ) {
+      return [
+        "LB",
+        "LWB",
+        "CB",
+        "RB",
+        "RWB"
+      ].includes(
+        pos
+      );
+    }
+
+    if (
+      filter ===
+      "MED"
+    ) {
+      return [
+        "CDM",
+        "CM",
+        "CAM",
+        "LM",
+        "RM"
+      ].includes(
+        pos
+      );
+    }
+
+    if (
+      filter ===
+      "ATA"
+    ) {
+      return [
+        "LW",
+        "RW",
+        "ST",
+        "CF"
+      ].includes(
+        pos
+      );
+    }
+
+    return true;
+  }
+
+  function applyPlayerFilters() {
+
+    let list =
+      state.players.filter(
+        player => {
+
+          if (
+            !matchesPosition(
+              player,
+              state.positionFilter
+            )
+          ) {
+            return false;
+          }
+
+          if (
+            state.ovrFilter &&
+            Number(
+              player.ovr ||
+              0
+            ) <
+              state.ovrFilter
+          ) {
+            return false;
+          }
+
+          if (
+            state.favoritesOnly &&
+            !isFavorite(
+              player
+            )
+          ) {
+            return false;
+          }
+
+          if (
+            state.query &&
+            !`${player.name} ${player.club} ${player.league} ${player.country} ${player.pos} ${player.program}`
+              .toLowerCase()
+              .includes(
+                state.query
+              )
+          ) {
+            return false;
+          }
+
+          return true;
+        }
+      );
+
+    switch (
+      state.sortMode
+    ) {
+
+      case "ovr_asc":
+
+        list.sort(
+          (
+            a,
+            b
+          ) =>
+            Number(
+              a.ovr ||
+              0
+            ) -
+            Number(
+              b.ovr ||
+              0
+            )
+        );
+
+        break;
+
+      case "price_asc":
+
+        list.sort(
+          (
+            a,
+            b
+          ) =>
+            Number(
+              a.price ||
+              0
+            ) -
+            Number(
+              b.price ||
+              0
+            )
+        );
+
+        break;
+
+      case "price_desc":
+
+        list.sort(
+          (
+            a,
+            b
+          ) =>
+            Number(
+              b.price ||
+              0
+            ) -
+            Number(
+              a.price ||
+              0
+            )
+        );
+
+        break;
+
+      case "name_asc":
+
+        list.sort(
+          (
+            a,
+            b
+          ) =>
+            String(
+              a.name
+            ).localeCompare(
+              String(
+                b.name
+              ),
+              "es"
+            )
+        );
+
+        break;
+
+      default:
+
+        list.sort(
+          (
+            a,
+            b
+          ) =>
+            Number(
+              b.ovr ||
+              0
+            ) -
+            Number(
+              a.ovr ||
+              0
+            )
+        );
+
+        break;
+    }
+
+    state.filtered =
+      list;
+
+    state.count =
+      40;
+
+    renderPlayers();
+
+    const count =
+      $("fsmPlayerCount");
+
+    if (count) {
+
+      count.textContent =
+        `Mostrando hasta 40 de ${list.length} resultado(s)`;
+    }
+  }
+
+  function card(
+    p
+  ) {
+
+    const favorite =
+      isFavorite(
+        p
+      );
+
     const initials =
       String(
         p.name ||
         "?"
       )
         .trim()
-        .split(/\s+/)
+        .split(
+          /\s+/
+        )
         .slice(
           0,
           2
@@ -252,6 +900,30 @@
       >
 
         <div class="art">
+
+          <button
+            type="button"
+            class="fsm-fav-btn"
+            data-fav-player="${esc(
+              p.id
+            )}"
+            aria-label="${
+              favorite
+                ? "Quitar de favoritos"
+                : "Añadir a favoritos"
+            }"
+            title="${
+              favorite
+                ? "Quitar de favoritos"
+                : "Añadir a favoritos"
+            }"
+          >
+            ${
+              favorite
+                ? "★"
+                : "☆"
+            }
+          </button>
 
           <div class="ovr">
             ${esc(
@@ -357,6 +1029,7 @@
   }
 
   function renderPlayers() {
+
     const box =
       $("allPlayers");
 
@@ -376,11 +1049,14 @@
 
     box.innerHTML =
       list
-        .map(card)
+        .map(
+          card
+        )
         .join("") +
 
       (
         more
+
           ? `
             <div
               style="
@@ -390,7 +1066,9 @@
               "
             >
 
-              <small class="muted">
+              <small
+                class="muted"
+              >
                 Mostrando
                 ${list.length}
                 de
@@ -409,6 +1087,7 @@
 
             </div>
           `
+
           : ""
       );
 
@@ -427,6 +1106,7 @@
   }
 
   function renderFeatured() {
+
     const box =
       $("featured");
 
@@ -440,40 +1120,50 @@
           0,
           5
         )
-        .map(card)
+        .map(
+          card
+        )
         .join("");
   }
 
   function pickerOptions() {
+
     return (
-      `<option value="">
-        Seleccionar...
-      </option>` +
+      `
+        <option value="">
+          Seleccionar...
+        </option>
+      ` +
 
       state.top
         .map(
           p =>
-            `<option value="${esc(
-              p.id
-            )}">
-              ${esc(
-                p.name
-              )}
-              ·
-              ${esc(
-                p.pos
-              )}
-              · GRL
-              ${esc(
-                p.ovr
-              )}
-            </option>`
+            `
+              <option
+                value="${esc(
+                  p.id
+                )}"
+              >
+                ${esc(
+                  p.name
+                )}
+                ·
+                ${esc(
+                  p.pos
+                )}
+                · GRL
+                ${esc(
+                  p.ovr
+                )}
+              </option>
+            `
         )
         .join("")
     );
   }
 
   function refreshPickers() {
+
     const html =
       pickerOptions();
 
@@ -503,58 +1193,120 @@
     );
   }
 
-function renderSquad(){
-  const box = $("formation");
+  function renderSquad() {
 
-  if (!box) {
-    return;
+    const box =
+      $("formation");
+
+    if (!box) {
+      return;
+    }
+
+    const positions = [
+      [
+        "GK",
+        "gk"
+      ],
+      [
+        "LB",
+        "lb"
+      ],
+      [
+        "CB",
+        "cb1"
+      ],
+      [
+        "CB",
+        "cb2"
+      ],
+      [
+        "RB",
+        "rb"
+      ],
+      [
+        "CDM",
+        "cm1"
+      ],
+      [
+        "CM",
+        "cm2"
+      ],
+      [
+        "CAM",
+        "cam"
+      ],
+      [
+        "LW",
+        "lw"
+      ],
+      [
+        "RW",
+        "rw"
+      ],
+      [
+        "ST",
+        "st"
+      ]
+    ];
+
+    const opts =
+      pickerOptions();
+
+    box.innerHTML =
+      positions
+        .map(
+          (
+            [
+              position,
+              cssClass
+            ],
+            index
+          ) =>
+            `
+              <div
+                class="spot ${cssClass}"
+              >
+
+                <select
+                  data-squad="${index}"
+                  aria-label="${esc(
+                    position
+                  )}"
+                >
+                  ${opts}
+                </select>
+
+                <span>
+                  ${esc(
+                    position
+                  )}
+                </span>
+
+              </div>
+            `
+        )
+        .join("");
   }
 
-  const positions = [
-    ["GK", "gk"],
-    ["LB", "lb"],
-    ["CB", "cb1"],
-    ["CB", "cb2"],
-    ["RB", "rb"],
-    ["CDM", "cm1"],
-    ["CM", "cm2"],
-    ["CAM", "cam"],
-    ["LW", "lw"],
-    ["RW", "rw"],
-    ["ST", "st"]
-  ];
-
-  const opts = pickerOptions();
-
-  box.innerHTML =
-    positions
-      .map(
-        ([position, cssClass], index) => `
-          <div class="spot ${cssClass}">
-            <select
-              data-squad="${index}"
-              aria-label="${esc(position)}"
-            >
-              ${opts}
-            </select>
-
-            <span>
-              ${esc(position)}
-            </span>
-          </div>
-        `
-      )
-      .join("");
-}
   function renderAll() {
+
+    buildPlayerControls();
+
     renderFeatured();
+
     renderPlayers();
+
     refreshPickers();
+
     renderSquad();
+
     updateAuthUI();
   }
 
-  function go(id) {
+  function go(
+    id
+  ) {
+
     document
       .querySelectorAll(
         ".page"
@@ -587,13 +1339,15 @@ function renderSquad(){
 
     window.scrollTo({
       top: 0,
-      behavior: "smooth"
+      behavior:
+        "smooth"
     });
 
     if (
       id ===
       "players"
     ) {
+
       if (
         window.FSM_PLAYERS_LOAD_REFERENCE
       ) {
@@ -604,47 +1358,16 @@ function renderSquad(){
     }
   }
 
-  function filter(q) {
+  function filter(
+    q
+  ) {
+
     state.query =
       q
         .trim()
         .toLowerCase();
 
-    if (
-      !state.query
-    ) {
-      state.filtered =
-        state.players;
-
-    } else {
-
-      state.filtered =
-        [];
-
-      for (
-        const entry
-        of state.index
-      ) {
-
-        if (
-          entry.text.includes(
-            state.query
-          )
-        ) {
-
-          state.filtered.push(
-            state.players[
-              entry.i
-            ]
-          );
-        }
-      }
-    }
-
-    state.count =
-      40;
-
-    renderPlayers();
+    applyPlayerFilters();
   }
 
   function setupNav() {
@@ -713,6 +1436,31 @@ function renderSquad(){
               ),
             140
           );
+      }
+    );
+
+    $(
+      "allPlayers"
+    )?.addEventListener(
+      "click",
+      event => {
+
+        const button =
+          event.target.closest(
+            "[data-fav-player]"
+          );
+
+        if (!button) {
+          return;
+        }
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        toggleFavorite(
+          button.dataset.favPlayer
+        );
       }
     );
 
@@ -974,7 +1722,9 @@ function renderSquad(){
     mode
   ) {
 
-    if (!client) {
+    if (
+      !client
+    ) {
 
       toast(
         "Supabase no está disponible."
@@ -1097,7 +1847,9 @@ function renderSquad(){
     const box =
       $("authBox");
 
-    if (!box) {
+    if (
+      !box
+    ) {
       return;
     }
 
@@ -1232,7 +1984,9 @@ function renderSquad(){
       !b
     ) {
 
-      $("compareOut").innerHTML =
+      $(
+        "compareOut"
+      ).innerHTML =
         `
           <div class="notice">
             Selecciona dos jugadores.
@@ -1289,20 +2043,20 @@ function renderSquad(){
                 .map(
                   (
                     [
-                      label,
-                      key
+                      l,
+                      k
                     ]
                   ) =>
                     `
                       <div class="metric">
 
                         <span class="muted">
-                          ${label}
+                          ${l}
                         </span>
 
                         <b>
                           ${esc(
-                            p[key]
+                            p[k]
                           )}
                         </b>
 
@@ -1321,11 +2075,14 @@ function renderSquad(){
           </div>
         `;
 
-    $("compareOut").innerHTML =
+    $(
+      "compareOut"
+    ).innerHTML =
       `
         <div class="compare">
 
           ${box(a)}
+
           ${box(b)}
 
         </div>
@@ -1353,9 +2110,13 @@ function renderSquad(){
         0
       );
 
-    if (!p) {
+    if (
+      !p
+    ) {
 
-      $("marketOut").innerHTML =
+      $(
+        "marketOut"
+      ).innerHTML =
         `
           <div class="notice">
             Selecciona un jugador.
@@ -1365,9 +2126,13 @@ function renderSquad(){
       return;
     }
 
-    if (!price) {
+    if (
+      !price
+    ) {
 
-      $("marketOut").innerHTML =
+      $(
+        "marketOut"
+      ).innerHTML =
         `
           <div class="notice">
             Introduce un precio.
@@ -1401,14 +2166,22 @@ function renderSquad(){
         100;
 
       msg =
-        difference <= -10
+        difference <=
+        -10
+
           ? "🟢 Buen precio."
-          : difference >= 10
+
+          : difference >=
+            10
+
             ? "🔴 Precio alto."
+
             : "🟡 Precio cercano a la referencia.";
     }
 
-    $("marketOut").innerHTML =
+    $(
+      "marketOut"
+    ).innerHTML =
       `
         <div class="notice">
 
@@ -1519,7 +2292,9 @@ function renderSquad(){
         ) /
         sel.length;
 
-    $("squadSummary").innerHTML =
+    $(
+      "squadSummary"
+    ).innerHTML =
       `
         <div class="notice">
 
@@ -1557,20 +2332,21 @@ function renderSquad(){
   ) {
 
     const list =
-      players().filter(
-        p =>
-          (
-            !pos ||
-            p.pos ===
-              pos
-          ) &&
-          (
-            !budget ||
-            !p.price ||
-            p.price <=
-              budget
-          )
-      );
+      players()
+        .filter(
+          p =>
+            (
+              !pos ||
+              p.pos ===
+                pos
+            ) &&
+            (
+              !budget ||
+              !p.price ||
+              p.price <=
+                budget
+            )
+        );
 
     if (
       !list.length
@@ -1588,12 +2364,16 @@ function renderSquad(){
           {
             ovr:
               "ovr",
+
             pace:
               "pace",
+
             shoot:
               "shoot",
+
             dribble:
               "dribble",
+
             def:
               "def"
           }[
@@ -1618,9 +2398,10 @@ function renderSquad(){
             Math.max(
               1,
               b.price ||
-                1
+              1
             )
           ) -
+
           (
             (
               a.ovr ||
@@ -1629,7 +2410,7 @@ function renderSquad(){
             Math.max(
               1,
               a.price ||
-                1
+              1
             )
           )
         );
@@ -1698,20 +2479,22 @@ function renderSquad(){
         priority
       );
 
-    $("results").innerHTML =
+    $(
+      "results"
+    ).innerHTML =
       local.length
 
         ? `
           <div class="cards">
-
             ${local
               .slice(
                 0,
                 8
               )
-              .map(card)
+              .map(
+                card
+              )
               .join("")}
-
           </div>
         `
 
@@ -1748,6 +2531,7 @@ function renderSquad(){
       if (
         !token
       ) {
+
         throw new Error(
           "Sesión no válida."
         );
@@ -1820,60 +2604,61 @@ function renderSquad(){
         result
       ) {
 
-        $("results")
-          .insertAdjacentHTML(
-            "afterbegin",
-            `
-              <div class="panel">
+        $(
+          "results"
+        ).insertAdjacentHTML(
+          "afterbegin",
+          `
+            <div class="panel">
 
-                <h3>
-                  🤖 FSM IA
-                </h3>
+              <h3>
+                🤖 FSM IA
+              </h3>
 
-                <p>
-                  Puntuación:
-                  <b>
-                    ${esc(
-                      result.score
-                    )}
-                  </b>
-                </p>
+              <p>
+                Puntuación:
+                <b>
+                  ${esc(
+                    result.score
+                  )}
+                </b>
+              </p>
 
-                <p>
-                  Prioridad:
-                  <b>
-                    ${esc(
-                      result.priority
-                    )}
-                  </b>
-                </p>
+              <p>
+                Prioridad:
+                <b>
+                  ${esc(
+                    result.priority
+                  )}
+                </b>
+              </p>
 
-                ${
-                  Array.isArray(
-                    result.advice
-                  )
-                    ? `
-                      <ul>
+              ${
+                Array.isArray(
+                  result.advice
+                )
+                  ? `
+                    <ul>
 
-                        ${
-                          result.advice
-                            .map(
-                              x =>
-                                `<li>${esc(
-                                  x
-                                )}</li>`
-                            )
-                            .join("")
-                        }
+                      ${
+                        result.advice
+                          .map(
+                            x =>
+                              `<li>${esc(
+                                x
+                              )}</li>`
+                          )
+                          .join("")
+                      }
 
-                      </ul>
-                    `
-                    : ""
-                }
+                    </ul>
+                  `
+                  : ""
+              }
 
-              </div>
-            `
-          );
+            </div>
+          `
+        );
       }
 
       if (
@@ -1925,7 +2710,94 @@ function renderSquad(){
     }
   }
 
+  function addPlayerFilterStyles() {
+
+    if (
+      $("fsmPlayerFilterStyles")
+    ) {
+      return;
+    }
+
+    const style =
+      document.createElement(
+        "style"
+      );
+
+    style.id =
+      "fsmPlayerFilterStyles";
+
+    style.textContent = `
+      .fsm-player-controls {
+        margin:14px 0 16px;
+        display:grid;
+        gap:9px;
+      }
+
+      .fsm-filter-row {
+        display:flex;
+        flex-wrap:wrap;
+        gap:7px;
+        align-items:center;
+      }
+
+      .fsm-filter {
+        border:1px solid var(--line,#ffffff14);
+        background:#ffffff08;
+        color:var(--muted,#929caf);
+        padding:8px 11px;
+        border-radius:999px;
+        font-size:11px;
+        font-weight:800;
+      }
+
+      .fsm-filter:hover,
+      .fsm-filter.active {
+        background:#7c5cff22;
+        border-color:#7c5cff70;
+        color:#fff;
+      }
+
+      .fsm-player-controls select.input {
+        min-width:170px;
+        flex:1;
+      }
+
+      .card .art {
+        position:relative;
+      }
+
+      .fsm-fav-btn {
+        position:absolute;
+        right:8px;
+        bottom:8px;
+        z-index:5;
+        width:31px;
+        height:31px;
+        border-radius:999px;
+        border:1px solid #ffffff25;
+        background:#080b12cc;
+        color:#ffd166;
+        font-size:18px;
+        line-height:1;
+        display:grid;
+        place-items:center;
+        cursor:pointer;
+      }
+
+      .fsm-fav-btn:hover {
+        transform:scale(1.08);
+        background:#080b12ee;
+      }
+    `;
+
+    document.head.appendChild(
+      style
+    );
+  }
+
   function init() {
+
+    addPlayerFilterStyles();
 
     setupNav();
 
