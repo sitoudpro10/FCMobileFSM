@@ -7,18 +7,18 @@
   const SUPABASE_KEY =
     "sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6UTaFORK";
 
-  const RESET_PATH = "/#account";
+  const RECOVERY_PENDING_KEY =
+    "fsm_recovery_pending_v2";
 
   let supabaseClient = null;
   let recoveryReady = false;
-  let exchangeStarted = false;
+  let modalCreated = false;
 
-  function qs(id) {
-    return document.getElementById(id);
-  }
+  const $ = id =>
+    document.getElementById(id);
 
   function toast(message) {
-    const el = qs("toast");
+    const el = $("toast");
 
     if (!el) {
       window.alert(message);
@@ -28,9 +28,9 @@
     el.textContent = message;
     el.classList.add("show");
 
-    clearTimeout(el._fsmRecoveryTimer);
+    clearTimeout(el._fsmToastTimer);
 
-    el._fsmRecoveryTimer = setTimeout(
+    el._fsmToastTimer = setTimeout(
       () => el.classList.remove("show"),
       3500
     );
@@ -42,36 +42,43 @@
     }
 
     if (!window.supabase?.createClient) {
-      toast(
-        "Supabase todavía no está cargado. Recarga la página."
-      );
       return null;
     }
 
     supabaseClient =
       window.supabase.createClient(
         SUPABASE_URL,
-        SUPABASE_KEY
+        SUPABASE_KEY,
+        {
+          auth: {
+            detectSessionInUrl: true,
+            persistSession: true,
+            autoRefreshToken: true
+          }
+        }
       );
 
     return supabaseClient;
   }
 
   function addStyles() {
-    if (qs("fsmRecoveryStyles")) {
+    if ($("fsmRecoveryStyles")) {
       return;
     }
 
-    const style = document.createElement("style");
-    style.id = "fsmRecoveryStyles";
+    const style =
+      document.createElement("style");
+
+    style.id =
+      "fsmRecoveryStyles";
 
     style.textContent = `
       .fsm-recovery-link{
         display:inline-block;
         margin-top:10px;
-        background:none;
-        border:0;
         padding:0;
+        border:0;
+        background:none;
         color:#bcaeff;
         text-decoration:underline;
         cursor:pointer;
@@ -79,19 +86,15 @@
         font-size:12px;
       }
 
-      .fsm-recovery-link:hover{
-        color:#fff;
-      }
-
       .fsm-recovery-overlay{
         position:fixed;
         inset:0;
-        z-index:100000;
+        z-index:99999;
         display:none;
         align-items:center;
         justify-content:center;
         padding:16px;
-        background:#000c;
+        background:rgba(0,0,0,.78);
         backdrop-filter:blur(8px);
       }
 
@@ -101,19 +104,21 @@
 
       .fsm-recovery-box{
         width:min(470px,100%);
-        background:#101722;
-        border:1px solid #ffffff16;
-        border-radius:18px;
+        box-sizing:border-box;
         padding:22px;
-        box-shadow:0 30px 100px #000b;
+        border:1px solid rgba(255,255,255,.08);
+        border-radius:18px;
+        background:#101722;
+        box-shadow:0 30px 100px rgba(0,0,0,.65);
       }
 
       .fsm-recovery-box h2{
-        margin:0;
+        margin:0 0 8px;
         color:#fff;
       }
 
       .fsm-recovery-box p{
+        margin:0 0 12px;
         color:#929caf;
         font-size:12px;
         line-height:1.5;
@@ -121,7 +126,7 @@
 
       .fsm-recovery-box label{
         display:block;
-        margin-top:12px;
+        margin:12px 0 6px;
         color:#c8ced9;
         font-size:12px;
         font-weight:700;
@@ -130,18 +135,12 @@
       .fsm-recovery-box input{
         width:100%;
         box-sizing:border-box;
-        margin-top:7px;
         padding:12px;
+        border:1px solid rgba(255,255,255,.1);
         border-radius:10px;
-        border:1px solid #ffffff16;
+        outline:none;
         background:#080c13;
         color:#fff;
-        outline:none;
-      }
-
-      .fsm-recovery-box input:focus{
-        border-color:#7c5cff80;
-        box-shadow:0 0 0 3px #7c5cff16;
       }
 
       .fsm-recovery-actions{
@@ -152,8 +151,8 @@
 
       .fsm-recovery-actions button{
         flex:1;
-        border-radius:10px;
         padding:11px 12px;
+        border-radius:10px;
         font-weight:800;
         cursor:pointer;
       }
@@ -165,9 +164,9 @@
       }
 
       .fsm-recovery-cancel{
-        background:#ffffff0a;
+        border:1px solid rgba(255,255,255,.1);
+        background:rgba(255,255,255,.04);
         color:#fff;
-        border:1px solid #ffffff12;
       }
 
       .fsm-recovery-error{
@@ -177,20 +176,14 @@
         font-size:12px;
         line-height:1.4;
       }
-
-      .fsm-recovery-info{
-        display:none;
-        margin-top:10px;
-        color:#bcaeff;
-        font-size:12px;
-      }
     `;
 
     document.head.appendChild(style);
   }
 
   function createRecoveryModal() {
-    if (qs("fsmRecoveryOverlay")) {
+    if (modalCreated || $("fsmRecoveryOverlay")) {
+      modalCreated = true;
       return;
     }
 
@@ -211,34 +204,34 @@
         aria-labelledby="fsmRecoveryTitle"
       >
         <h2 id="fsmRecoveryTitle">
-          Recuperar contraseña
+          Crear nueva contraseña
         </h2>
 
-        <p id="fsmRecoveryDescription">
-          Introduce tu nueva contraseña y confírmala.
+        <p>
+          Escribe una nueva contraseña para tu cuenta.
         </p>
 
-        <label for="fsmRecoveryNewPassword">
+        <label for="fsmRecoveryNew">
           Nueva contraseña
         </label>
 
         <input
-          id="fsmRecoveryNewPassword"
+          id="fsmRecoveryNew"
           type="password"
-          autocomplete="new-password"
           minlength="6"
+          autocomplete="new-password"
           placeholder="Mínimo 6 caracteres"
         >
 
-        <label for="fsmRecoveryConfirmPassword">
+        <label for="fsmRecoveryConfirm">
           Repite la contraseña
         </label>
 
         <input
-          id="fsmRecoveryConfirmPassword"
+          id="fsmRecoveryConfirm"
           type="password"
-          autocomplete="new-password"
           minlength="6"
+          autocomplete="new-password"
           placeholder="Repite la contraseña"
         >
 
@@ -246,13 +239,6 @@
           id="fsmRecoveryError"
           class="fsm-recovery-error"
         ></div>
-
-        <div
-          id="fsmRecoveryInfo"
-          class="fsm-recovery-info"
-        >
-          La contraseña se está actualizando...
-        </div>
 
         <div class="fsm-recovery-actions">
           <button
@@ -275,10 +261,11 @@
     `;
 
     document.body.appendChild(overlay);
+    modalCreated = true;
 
-    qs("fsmRecoveryCancel")?.addEventListener(
+    $("fsmRecoveryCancel")?.addEventListener(
       "click",
-      closeRecoveryModal
+      () => closeRecoveryModal()
     );
 
     overlay.addEventListener(
@@ -290,67 +277,47 @@
       }
     );
 
-    qs("fsmRecoverySave")?.addEventListener(
+    $("fsmRecoverySave")?.addEventListener(
       "click",
-      updatePassword
+      () => updatePassword()
     );
 
     [
-      "fsmRecoveryNewPassword",
-      "fsmRecoveryConfirmPassword"
+      "fsmRecoveryNew",
+      "fsmRecoveryConfirm"
     ].forEach(id => {
-      qs(id)?.addEventListener(
+      $(id)?.addEventListener(
         "keydown",
         event => {
           if (event.key === "Enter") {
             updatePassword();
-          }
-
-          if (event.key === "Escape") {
-            closeRecoveryModal();
           }
         }
       );
     });
   }
 
-  function showRecoveryModal() {
-    recoveryReady = true;
+  function openRecoveryModal() {
+    createRecoveryModal();
 
-    const modal =
-      qs("fsmRecoveryOverlay");
+    $("fsmRecoveryError").style.display = "none";
+    $("fsmRecoveryError").textContent = "";
 
-    if (!modal) {
-      return;
-    }
+    $("fsmRecoveryOverlay")
+      ?.classList.add("open");
 
-    modal.classList.add("open");
-
-    const error =
-      qs("fsmRecoveryError");
-
-    const info =
-      qs("fsmRecoveryInfo");
-
-    if (error) {
-      error.style.display = "none";
-      error.textContent = "";
-    }
-
-    if (info) {
-      info.style.display = "none";
-    }
-
-    qs("fsmRecoveryNewPassword")?.focus();
+    $("fsmRecoveryNew")
+      ?.focus();
   }
 
   function closeRecoveryModal() {
-    qs("fsmRecoveryOverlay")?.classList.remove("open");
+    $("fsmRecoveryOverlay")
+      ?.classList.remove("open");
   }
 
-  function showRecoveryError(message) {
+  function showError(message) {
     const el =
-      qs("fsmRecoveryError");
+      $("fsmRecoveryError");
 
     if (!el) {
       toast(message);
@@ -361,377 +328,39 @@
     el.style.display = "block";
   }
 
-  async function updatePassword() {
-    const client = getClient();
-
-    if (!client) {
-      return;
-    }
-
-    const newPassword =
-      qs("fsmRecoveryNewPassword")
-        ?.value || "";
-
-    const confirmPassword =
-      qs("fsmRecoveryConfirmPassword")
-        ?.value || "";
-
-    if (newPassword.length < 6) {
-      showRecoveryError(
-        "La contraseña debe tener al menos 6 caracteres."
-      );
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      showRecoveryError(
-        "Las contraseñas no coinciden."
-      );
-      return;
-    }
-
-    const button =
-      qs("fsmRecoverySave");
-
-    const info =
-      qs("fsmRecoveryInfo");
-
-    if (button) {
-      button.disabled = true;
-      button.textContent = "Guardando...";
-    }
-
-    if (info) {
-      info.style.display = "block";
-    }
-
-    const errorBox =
-      qs("fsmRecoveryError");
-
-    if (errorBox) {
-      errorBox.style.display = "none";
-      errorBox.textContent = "";
-    }
-
+  function markRecoveryPending() {
     try {
-      const {
-        data: {
-          session
-        }
-      } =
-        await client.auth.getSession();
-
-      if (!session?.user) {
-        throw new Error(
-          "El enlace de recuperación ha caducado. Solicita otro enlace."
-        );
-      }
-
-      const {
-        error
-      } =
-        await client.auth.updateUser({
-          password: newPassword
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      await client.auth.signOut();
-
-      closeRecoveryModal();
-
-      toast(
-        "✅ Contraseña actualizada. Ahora inicia sesión con tu nueva contraseña."
+      localStorage.setItem(
+        RECOVERY_PENDING_KEY,
+        "1"
       );
-
-      const cleanUrl =
-        window.location.origin +
-        window.location.pathname +
-        window.location.search +
-        "#account";
-
-      history.replaceState(
-        null,
-        "",
-        cleanUrl
-      );
-
-      setTimeout(
-        () => {
-          window.location.hash =
-            "account";
-        },
-        100
-      );
-
-      const passwordInput =
-        qs("password");
-
-      if (passwordInput) {
-        passwordInput.value = "";
-      }
-
-      if (qs("email")) {
-        qs("email").focus();
-      }
-    } catch (error) {
-      console.error(
-        "FSM recovery update:",
-        error
-      );
-
-      showRecoveryError(
-        error?.message ||
-        "No se pudo actualizar la contraseña."
-      );
-    } finally {
-      if (button) {
-        button.disabled = false;
-        button.textContent =
-          "Guardar contraseña";
-      }
-
-      if (info) {
-        info.style.display = "none";
-      }
-    }
+    } catch {}
   }
 
-  async function sendRecoveryEmail() {
-    const client = getClient();
-
-    if (!client) {
-      return;
-    }
-
-    const emailInput =
-      qs("email");
-
-    const email =
-      String(
-        emailInput?.value || ""
-      )
-        .trim()
-        .toLowerCase();
-
-    if (!email) {
-      showRecoveryRequestModal();
-      return;
-    }
-
-    await sendRecoveryForEmail(email);
-  }
-
-  function createRequestModal() {
-    if (qs("fsmRecoveryRequestOverlay")) {
-      return;
-    }
-
-    const overlay =
-      document.createElement("div");
-
-    overlay.id =
-      "fsmRecoveryRequestOverlay";
-
-    overlay.className =
-      "fsm-recovery-overlay";
-
-    overlay.innerHTML = `
-      <div
-        class="fsm-recovery-box"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="fsmRecoveryRequestTitle"
-      >
-        <h2 id="fsmRecoveryRequestTitle">
-          Recuperar contraseña
-        </h2>
-
-        <p>
-          Escribe tu correo y te enviaremos
-          un enlace para crear una contraseña nueva.
-        </p>
-
-        <label for="fsmRecoveryEmail">
-          Correo electrónico
-        </label>
-
-        <input
-          id="fsmRecoveryEmail"
-          type="email"
-          autocomplete="email"
-          placeholder="tu@email.com"
-        >
-
-        <div class="fsm-recovery-actions">
-          <button
-            id="fsmRecoveryRequestCancel"
-            type="button"
-            class="fsm-recovery-cancel"
-          >
-            Cancelar
-          </button>
-
-          <button
-            id="fsmRecoveryRequestSend"
-            type="button"
-            class="fsm-recovery-save"
-          >
-            Enviar enlace
-          </button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    qs("fsmRecoveryRequestCancel")?.addEventListener(
-      "click",
-      closeRequestModal
-    );
-
-    overlay.addEventListener(
-      "click",
-      event => {
-        if (event.target === overlay) {
-          closeRequestModal();
-        }
-      }
-    );
-
-    qs("fsmRecoveryRequestSend")?.addEventListener(
-      "click",
-      () => {
-        const email =
-          String(
-            qs("fsmRecoveryEmail")?.value ||
-            ""
-          )
-            .trim()
-            .toLowerCase();
-
-        if (!email) {
-          toast(
-            "Escribe tu correo electrónico."
-          );
-          return;
-        }
-
-        sendRecoveryForEmail(email);
-      }
-    );
-  }
-
-  function showRecoveryRequestModal() {
-    createRequestModal();
-
-    const modal =
-      qs("fsmRecoveryRequestOverlay");
-
-    const input =
-      qs("fsmRecoveryEmail");
-
-    const accountEmail =
-      String(
-        qs("email")?.value ||
-        ""
-      )
-        .trim()
-        .toLowerCase();
-
-    if (
-      input &&
-      !input.value &&
-      accountEmail
-    ) {
-      input.value = accountEmail;
-    }
-
-    modal?.classList.add("open");
-
-    setTimeout(
-      () => input?.focus(),
-      0
-    );
-  }
-
-  function closeRequestModal() {
-    qs("fsmRecoveryRequestOverlay")
-      ?.classList.remove("open");
-  }
-
-  async function sendRecoveryForEmail(email) {
-    const client = getClient();
-
-    if (!client) {
-      return;
-    }
-
-    if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-    ) {
-      toast(
-        "Escribe un correo electrónico válido."
-      );
-      return;
-    }
-
-    const button =
-      qs("fsmRecoveryRequestSend");
-
-    if (button) {
-      button.disabled = true;
-      button.textContent = "Enviando...";
-    }
-
+  function consumeRecoveryPending() {
     try {
-      const {
-        error
-      } =
-        await client.auth.resetPasswordForEmail(
-          email,
-          {
-            redirectTo:
-              `${window.location.origin}${RESET_PATH}`
-          }
-        );
+      const pending =
+        localStorage.getItem(
+          RECOVERY_PENDING_KEY
+        ) === "1";
 
-      if (error) {
-        throw error;
-      }
-
-      closeRequestModal();
-
-      toast(
-        "✅ Hemos enviado el enlace de recuperación a tu correo."
-      );
-    } catch (error) {
-      console.error(
-        "FSM password recovery request:",
-        error
+      localStorage.removeItem(
+        RECOVERY_PENDING_KEY
       );
 
-      toast(
-        error?.message ||
-        "No se pudo enviar el correo de recuperación."
-      );
-    } finally {
-      if (button) {
-        button.disabled = false;
-        button.textContent = "Enviar enlace";
-      }
+      return pending;
+    } catch {
+      return false;
     }
   }
 
   function addRecoveryLink() {
-    if (qs("fsmRecoveryLink")) {
+    if ($("fsmRecoveryLink")) {
       return;
     }
 
     const authBox =
-      qs("authBox");
+      $("authBox");
 
     if (!authBox) {
       return;
@@ -754,108 +383,362 @@
 
     link.addEventListener(
       "click",
-      sendRecoveryEmail
+      () => openRequestModal()
     );
 
     authBox.appendChild(link);
   }
 
-  function hasRecoveryHash() {
-    return (
-      window.location.hash.includes(
-        "type=recovery"
-      ) ||
-      window.location.hash.includes(
-        "access_token="
-      ) ||
-      window.location.hash.includes(
-        "refresh_token="
+  function openRequestModal() {
+    let modal =
+      $("fsmRequestRecoveryOverlay");
+
+    if (!modal) {
+      modal =
+        document.createElement("div");
+
+      modal.id =
+        "fsmRequestRecoveryOverlay";
+
+      modal.className =
+        "fsm-recovery-overlay";
+
+      modal.innerHTML = `
+        <div class="fsm-recovery-box">
+          <h2>
+            Recuperar contraseña
+          </h2>
+
+          <p>
+            Te enviaremos un enlace al correo de tu cuenta.
+          </p>
+
+          <label for="fsmRecoveryEmail">
+            Correo electrónico
+          </label>
+
+          <input
+            id="fsmRecoveryEmail"
+            type="email"
+            autocomplete="email"
+            placeholder="tu@email.com"
+          >
+
+          <div class="fsm-recovery-actions">
+            <button
+              id="fsmRecoveryRequestCancel"
+              type="button"
+              class="fsm-recovery-cancel"
+            >
+              Cancelar
+            </button>
+
+            <button
+              id="fsmRecoveryRequestSend"
+              type="button"
+              class="fsm-recovery-save"
+            >
+              Enviar enlace
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+
+      $("fsmRecoveryRequestCancel")
+        ?.addEventListener(
+          "click",
+          () =>
+            modal.classList.remove(
+              "open"
+            )
+        );
+
+      modal.addEventListener(
+        "click",
+        event => {
+          if (event.target === modal) {
+            modal.classList.remove(
+              "open"
+            );
+          }
+        }
+      );
+
+      $("fsmRecoveryRequestSend")
+        ?.addEventListener(
+          "click",
+          () => sendRecoveryEmail()
+        );
+    }
+
+    const accountEmail =
+      String(
+        $("email")?.value || ""
       )
-    );
-  }
-
-  function hasRecoveryCode() {
-    return Boolean(
-      new URLSearchParams(
-        window.location.search
-      ).get("code")
-    );
-  }
-
-  async function exchangeRecoveryCode() {
-    const client = getClient();
+        .trim()
+        .toLowerCase();
 
     if (
-      !client ||
-      exchangeStarted
+      accountEmail &&
+      $("fsmRecoveryEmail")
     ) {
-      return false;
+      $("fsmRecoveryEmail").value =
+        accountEmail;
     }
 
-    const code =
-      new URLSearchParams(
-        window.location.search
-      ).get("code");
+    modal.classList.add("open");
 
-    if (!code) {
-      return false;
+    $("fsmRecoveryEmail")
+      ?.focus();
+  }
+
+  async function sendRecoveryEmail() {
+    const client =
+      getClient();
+
+    if (!client) {
+      toast(
+        "Supabase todavía no está listo. Recarga la página."
+      );
+      return;
     }
 
-    exchangeStarted = true;
+    const email =
+      String(
+        $("fsmRecoveryEmail")?.value ||
+        $("email")?.value ||
+        ""
+      )
+        .trim()
+        .toLowerCase();
+
+    if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        email
+      )
+    ) {
+      toast(
+        "Escribe un correo electrónico válido."
+      );
+      return;
+    }
+
+    const button =
+      $("fsmRecoveryRequestSend");
+
+    if (button) {
+      button.disabled = true;
+      button.textContent =
+        "Enviando...";
+    }
 
     try {
+      markRecoveryPending();
+
       const {
         error
       } =
-        await client.auth.exchangeCodeForSession(
-          code
-        );
+        await client.auth
+          .resetPasswordForEmail(
+            email,
+            {
+              redirectTo:
+                `${window.location.origin}/#account`
+            }
+          );
 
       if (error) {
         throw error;
       }
 
-      const clean =
-        window.location.origin +
-        window.location.pathname +
-        "#account";
+      $("fsmRequestRecoveryOverlay")
+        ?.classList.remove(
+          "open"
+        );
 
-      history.replaceState(
-        null,
-        "",
-        clean
+      toast(
+        "✅ Hemos enviado el enlace de recuperación."
       );
-
-      return true;
     } catch (error) {
       console.error(
-        "FSM recovery exchange:",
+        "FSM recovery request:",
         error
       );
 
-      toast(
-        "El enlace de recuperación no es válido o ha caducado. Solicita uno nuevo."
-      );
+      try {
+        localStorage.removeItem(
+          RECOVERY_PENDING_KEY
+        );
+      } catch {}
 
-      return false;
+      toast(
+        error?.message ||
+        "No se pudo enviar el enlace."
+      );
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent =
+          "Enviar enlace";
+      }
     }
   }
 
-  async function prepareRecoveryFlow() {
-    const client = getClient();
+  async function updatePassword() {
+    const client =
+      getClient();
 
     if (!client) {
       return;
     }
 
-    if (hasRecoveryCode()) {
-      const exchanged =
-        await exchangeRecoveryCode();
+    const password =
+      $("fsmRecoveryNew")?.value ||
+      "";
 
-      if (!exchanged) {
-        return;
+    const confirm =
+      $("fsmRecoveryConfirm")?.value ||
+      "";
+
+    if (password.length < 6) {
+      showError(
+        "La contraseña debe tener al menos 6 caracteres."
+      );
+      return;
+    }
+
+    if (password !== confirm) {
+      showError(
+        "Las contraseñas no coinciden."
+      );
+      return;
+    }
+
+    const button =
+      $("fsmRecoverySave");
+
+    if (button) {
+      button.disabled = true;
+      button.textContent =
+        "Guardando...";
+    }
+
+    try {
+      const {
+        error
+      } =
+        await client.auth.updateUser({
+          password
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      recoveryReady = false;
+
+      closeRecoveryModal();
+
+      try {
+        localStorage.removeItem(
+          RECOVERY_PENDING_KEY
+        );
+      } catch {}
+
+      toast(
+        "✅ Contraseña cambiada correctamente."
+      );
+
+      const email =
+        $("email");
+
+      const pass =
+        $("password");
+
+      if (pass) {
+        pass.value = "";
+      }
+
+      setTimeout(
+        () => {
+          if (email) {
+            email.focus();
+          }
+
+          window.location.hash =
+            "account";
+        },
+        300
+      );
+
+      await client.auth.signOut();
+    } catch (error) {
+      console.error(
+        "FSM recovery update:",
+        error
+      );
+
+      showError(
+        error?.message ||
+        "No se pudo cambiar la contraseña."
+      );
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent =
+          "Guardar contraseña";
       }
     }
+  }
+
+  async function init() {
+    addStyles();
+    createRecoveryModal();
+    addRecoveryLink();
+
+    const client =
+      getClient();
+
+    if (!client) {
+      return;
+    }
+
+    /*
+      MUY IMPORTANTE:
+      registrar el listener ANTES de getSession()
+      para no perder PASSWORD_RECOVERY.
+    */
+    client.auth.onAuthStateChange(
+      (event, session) => {
+        if (
+          event ===
+          "PASSWORD_RECOVERY"
+        ) {
+          recoveryReady = true;
+          openRecoveryModal();
+          return;
+        }
+
+        if (
+          event === "SIGNED_IN" &&
+          session?.user &&
+          consumeRecoveryPending()
+        ) {
+          recoveryReady = true;
+          openRecoveryModal();
+        }
+      }
+    );
+
+    /*
+      Si el evento ya pasó antes de que
+      termináramos de montar la interfaz,
+      usamos la bandera guardada antes del envío.
+    */
+    const pending =
+      consumeRecoveryPending();
 
     const {
       data: {
@@ -867,46 +750,13 @@
     if (
       session?.user &&
       (
-        recoveryReady ||
-        hasRecoveryHash()
+        pending ||
+        recoveryReady
       )
     ) {
-      showRecoveryModal();
-      return;
+      recoveryReady = true;
+      openRecoveryModal();
     }
-
-    client.auth.onAuthStateChange(
-      (event, nextSession) => {
-        if (
-          event ===
-          "PASSWORD_RECOVERY"
-        ) {
-          recoveryReady = true;
-          showRecoveryModal();
-        } else if (
-          event ===
-          "SIGNED_IN" &&
-          hasRecoveryHash()
-        ) {
-          recoveryReady = true;
-          showRecoveryModal();
-        }
-      }
-    );
-  }
-
-  function init() {
-    addStyles();
-    createRecoveryModal();
-    createRequestModal();
-    addRecoveryLink();
-
-    setTimeout(
-      () => {
-        void prepareRecoveryFlow();
-      },
-      150
-    );
   }
 
   if (
@@ -915,10 +765,10 @@
   ) {
     document.addEventListener(
       "DOMContentLoaded",
-      init,
+      () => void init(),
       { once: true }
     );
   } else {
-    init();
+    void init();
   }
 })();
