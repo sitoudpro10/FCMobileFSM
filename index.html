@@ -1255,117 +1255,271 @@
 </script>
 
 
-<!-- =======================================================
-     CARGA DE FUNCIONES SECUNDARIAS
-     ======================================================= -->
+<script
+  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  defer
+></script>
+
+<script
+  src="auth-recovery.js"
+  defer
+></script>
+
+<script
+  src="players-fast.js"
+  defer
+></script>
+
+<script
+  src="app.js"
+  defer
+></script>
+
+<script
+  src="player-images-safe.js"
+  defer
+></script>
+
+<script
+  src="player-details.js"
+  defer
+></script>
+
+<!-- FSM PRO CHECKOUT -->
 
 <script>
 (() => {
   "use strict";
 
+  const SUPABASE_URL =
+    "https://jshevgjyweoianpbbjdl.supabase.co";
 
-  function loadDeferredScript(
-    src
-  ) {
+  const SUPABASE_KEY =
+    "sb_publishable_TQzyNZ62wl2-r1F64-WuKA_6UTaFORK";
 
-    const existing =
-      document.querySelector(
-        `script[src="${src}"]`
-      );
+  const CHECKOUT_URL =
+    `${SUPABASE_URL}/functions/v1/create-fsm-checkout`;
 
+  const showMessage = message => {
+    const toast =
+      document.getElementById("toast");
 
-    if (existing) {
+    if (!toast) {
+      alert(message);
       return;
     }
 
+    toast.textContent = message;
+    toast.classList.add("show");
 
-    const script =
-      document.createElement(
-        "script"
-      );
+    clearTimeout(toast._fsmTimer);
 
+    toast._fsmTimer =
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 4000);
+  };
 
-    script.src =
-      src;
+  const startCheckout = async button => {
 
-    script.async =
+    if (
+      button.dataset.fsmBusy ===
+      "true"
+    ) {
+      return;
+    }
+
+    button.dataset.fsmBusy =
+      "true";
+
+    button.disabled =
       true;
 
+    button.textContent =
+      "ABRIENDO STRIPE...";
 
-    document.body.appendChild(
-      script
-    );
+    try {
 
-  }
+      if (
+        !window.supabase ||
+        typeof window.supabase.createClient !==
+          "function"
+      ) {
+        throw new Error(
+          "Supabase no está cargado. Recarga la página."
+        );
+      }
 
+      const supabase =
+        window.supabase.createClient(
+          SUPABASE_URL,
+          SUPABASE_KEY
+        );
 
-  function startSecondary() {
+      const {
+        data,
+        error
+      } =
+        await supabase.auth.getSession();
 
-    loadDeferredScript(
-      "support.js"
-    );
+      if (error) {
+        throw error;
+      }
 
+      const session =
+        data?.session;
 
-    setTimeout(
-      () => {
+      if (
+        !session ||
+        !session.access_token
+      ) {
+        throw new Error(
+          "Debes iniciar sesión antes de activar FSM PRO."
+        );
+      }
 
-        loadDeferredScript(
-          "phase6.js"
+      const response =
+        await fetch(
+          CHECKOUT_URL,
+          {
+            method: "POST",
+
+            headers: {
+              "Authorization":
+                `Bearer ${session.access_token}`,
+
+              "apikey":
+                SUPABASE_KEY,
+
+              "Content-Type":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+              return_to:
+                window.location.href
+            })
+          }
+        );
+
+      let result = null;
+
+      try {
+        result =
+          await response.json();
+      } catch {
+        result = null;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error ||
+          result?.message ||
+          `Error de pago (${response.status}).`
+        );
+      }
+
+      if (
+        !result ||
+        typeof result.url !==
+          "string" ||
+        !result.url.trim()
+      ) {
+        throw new Error(
+          "Stripe no devolvió la URL de pago."
+        );
+      }
+
+      window.location.assign(
+        result.url
+      );
+
+    } catch (error) {
+
+      console.error(
+        "FSM PRO checkout:",
+        error
+      );
+
+      showMessage(
+        error?.message ||
+        "No se pudo abrir Stripe."
+      );
+
+      button.disabled =
+        false;
+
+      button.dataset.fsmBusy =
+        "false";
+
+      button.textContent =
+        "ACTIVAR PRO · 2,99 €/MES";
+    }
+  };
+
+  function connectCheckout() {
+
+    const button =
+      document.getElementById(
+        "activate"
+      );
+
+    if (!button) {
+      return;
+    }
+
+    if (
+      button.dataset.fsmCheckoutAttached ===
+      "true"
+    ) {
+      return;
+    }
+
+    button.dataset.fsmCheckoutAttached =
+      "true";
+
+    button.textContent =
+      "ACTIVAR PRO · 2,99 €/MES";
+
+    button.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        void startCheckout(
+          button
         );
 
       },
-      300
+      true
     );
-
-
-    setTimeout(
-      () => {
-
-        loadDeferredScript(
-          "phase66.js"
-        );
-
-      },
-      600
-    );
-
   }
-
 
   if (
-    "requestIdleCallback" in
-    window
+    document.readyState ===
+    "loading"
   ) {
 
-    requestIdleCallback(
-      startSecondary,
+    document.addEventListener(
+      "DOMContentLoaded",
+      connectCheckout,
       {
-        timeout: 3000
+        once: true
       }
     );
 
   } else {
 
-    window.addEventListener(
-      "load",
-      () => {
-
-        setTimeout(
-          startSecondary,
-          1200
-        );
-
-      },
-      {
-        once: true
-      }
-    );
+    connectCheckout();
 
   }
 
 })();
 </script>
 
-
 </body>
 </html>
+
