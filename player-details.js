@@ -874,7 +874,7 @@
 
   }
 
-  // Los botones PRO ya existen en index.html.
+
   // pueden crearse después de cargar
   // app.js. Los conectamos también
   // con un pequeño observador.
