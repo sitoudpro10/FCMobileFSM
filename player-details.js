@@ -875,16 +875,6 @@
   }
 
 
-  // pueden crearse después de cargar
-  // app.js. Los conectamos también
-  // con un pequeño observador.
-  const observer =
-    new MutationObserver(
-      () => {
-        connectProButtons();
-      }
-    );
-
   observer.observe(
     document.body,
     {
