@@ -1541,13 +1541,6 @@
 
   
 
-        toast(
-          "⭐ PRO activado en DEMO"
-        );
-      }
-    );
-  }
-
   function showModal(
     show
   ) {
