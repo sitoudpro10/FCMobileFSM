@@ -1539,20 +1539,7 @@
         )
     );
 
-    $(
-      "activate"
-    )?.addEventListener(
-      "click",
-      () => {
-
-        state.pro =
-          true;
-
-        updateAuthUI();
-
-        showModal(
-          false
-        );
+  
 
         toast(
           "⭐ PRO activado en DEMO"
